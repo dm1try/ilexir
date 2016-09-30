@@ -1,0 +1,15 @@
+# The directory Mix will write compiled artifacts to.
+/**/**/_build
+/cover
+/**/**/deps
+/tmp
+/spec/fixtures/xdg_home/nvim/plugin/*
+/spec/fixtures/xdg_home/nvim/rplugin/*
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
