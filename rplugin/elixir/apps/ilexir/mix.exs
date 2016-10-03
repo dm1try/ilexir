@@ -13,7 +13,8 @@ defmodule Ilexir.Mixfile do
   end
 
   def application do
-    [applications: [:logger] , env: [plugin_module: Ilexir.Plugin], mod: {Ilexir, []}]
+    options = [applications: [:logger] , env: [plugin_module: Ilexir.Plugin]]
+    if Mix.env != :test, do: options ++ [mod: {Ilexir, []}], else: options
   end
 
   defp deps do
