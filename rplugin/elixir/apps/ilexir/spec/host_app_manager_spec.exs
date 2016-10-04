@@ -7,7 +7,6 @@ defmodule Ilexir.HostAppManagerSpec do
   let :app, do: %Ilexir.HostApp{name: "dummy_mix_app"}
 
   before do
-    Code.compiler_options(ignore_module_conflict: true)
     {:ok, manager} = Manager.start_link
     {:ok, embed_nvim_session} = NVim.Test.Session.Embed.start_link(session_name: NVim.Session)
     {:shared, manager: manager, embed_nvim_session: embed_nvim_session}

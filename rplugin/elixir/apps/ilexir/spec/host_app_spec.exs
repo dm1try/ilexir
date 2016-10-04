@@ -7,7 +7,6 @@ defmodule Ilexir.HostAppSpec do
   let_ok :local_hostname, do: :inet.gethostname
 
   before do
-    Code.compiler_options(ignore_module_conflict: true)
     Node.start :host_app_test, :shortnames
   end
 
