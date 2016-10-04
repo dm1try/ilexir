@@ -8,5 +8,9 @@ defmodule Ilexir.Fixtures do
   def test_elixir_file_path do
     "#{__DIR__}/fixtures/some_test_file.ex"
   end
+
+  def test_elixir_mix_project_path do
+    "#{__DIR__}/fixtures/dummy_mix_app"
+  end
 end
 

@@ -5,7 +5,9 @@ defmodule Ilexir do
     import Supervisor.Spec
 
     children = [
-      worker(Ilexir.HostAppManager, [], [])
+      worker(Ilexir.HostAppManager, [], []),
+      worker(Ilexir.QuickFix, [], []),
+      worker(Ilexir.Linter, [], [])
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
