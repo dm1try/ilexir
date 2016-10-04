@@ -24,8 +24,17 @@ defmodule Ilexir.Plugin do
     vim_command "echo '#{inspect apps}'"
   end
 
-  on_event :insert_leave, do: lint_ast
-  on_event :text_changed, do: lint_ast
+  on_event :insert_leave,
+    pattern: "*.{ex,exs}"
+  do
+    lint_ast
+  end
+
+  on_event :text_changed,
+    pattern: "*.{ex,exs}"
+  do
+    lint_ast
+  end
 
   defp lint_ast do
     with {:ok, buffer} <- vim_get_current_buffer,
