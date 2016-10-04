@@ -7,14 +7,15 @@ defmodule Ilexir.QuickFixSpec do
 
   before do
     {:ok, embed_session} = EmbedSession.start_link(file: Ilexir.Fixtures.test_elixir_file_path)
+    {:ok, quick_fix_pid} = QuickFix.start_link
 
     enable_underlined_highlighting()
-    QuickFix.start_link
 
-    {:shared, embed_session: embed_session}
+    {:shared, embed_session: embed_session, quick_fix_pid: quick_fix_pid}
   end
 
   finally do
+    GenServer.stop(shared.quick_fix_pid)
     EmbedSession.stop(shared.embed_session)
   end
 
@@ -27,7 +28,9 @@ defmodule Ilexir.QuickFixSpec do
       text: fix_text,
       type: :warning,
       location: %QuickFix.Item.Location{
-        line: 1
+        line: 1,
+        col_start: 1,
+        col_end: 10
       }
     }
   end

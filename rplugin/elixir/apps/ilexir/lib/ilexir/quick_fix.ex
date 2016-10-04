@@ -4,6 +4,7 @@ defmodule Ilexir.QuickFix do
   require Logger
 
   @highilight_group "Underlined"
+
   def start_link(args \\ [], _opts \\ []) do
     GenServer.start_link(__MODULE__, args, [name: __MODULE__])
   end
