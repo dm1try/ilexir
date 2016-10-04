@@ -27,23 +27,29 @@ defmodule Ilexir.Plugin do
   on_event :insert_leave,
     pattern: "*.{ex,exs}"
   do
-    lint_ast
+    lint(Linter.Ast)
   end
 
   on_event :text_changed,
     pattern: "*.{ex,exs}"
   do
-    lint_ast
+    lint(Linter.Ast)
   end
 
-  defp lint_ast do
+  on_event :buf_write_post,
+    pattern: "*.{ex,exs}"
+  do
+    lint(Linter.Compiler)
+  end
+
+  defp lint(linter_mod) do
     with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.lookup(filename) do
 
       content = Enum.join(lines, "\n")
-      Linter.check(filename, content, Linter.Ast, app)
+      Linter.check(filename, content, linter_mod, app)
     else
       error ->
         Logger.warn("Unable to lint the buffer: #{inspect error}")

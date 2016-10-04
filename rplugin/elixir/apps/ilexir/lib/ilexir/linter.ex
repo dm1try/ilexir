@@ -27,11 +27,18 @@ defmodule Ilexir.Linter do
   end
 
   def handle_info({:on_app_load, app}, state) do
+    bootstrap_app(app)
+
+    {:noreply, state}
+  end
+
+  defp bootstrap_app(app) do
     Ilexir.HostApp.load_file(app, "#{__DIR__}/quick_fix/item.ex")
     Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/dummy.ex")
     Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/ast.ex")
-
-    {:noreply, state}
+    Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/compiler.ex")
+    Ilexir.HostApp.load_file(app, "#{@hosted_path}/standard_error_stub.ex")
+    Ilexir.HostApp.call(app, Ilexir.StandardErrorStub, :start_link, [])
   end
 end
 
