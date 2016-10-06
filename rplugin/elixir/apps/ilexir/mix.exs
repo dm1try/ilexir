@@ -18,7 +18,7 @@ defmodule Ilexir.Mixfile do
   end
 
   defp deps do
-    [{:nvim, "~> 0.1.1"},
+    [{:nvim, "~> 0.1.2"},
      {:espec, "~> 1.0.0", only: [:dev, :test]}]
   end
 end
