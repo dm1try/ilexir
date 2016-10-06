@@ -4,7 +4,7 @@ elixir:
 otp_release:
   - 19.0
 sudo: false
-before_script: cd rplugin/elixir/apps/ilexir
+before_install: cd rplugin/elixir/apps/ilexir
 script:
   - mix espec
 notifications:
