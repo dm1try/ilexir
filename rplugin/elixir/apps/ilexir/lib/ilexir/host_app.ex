@@ -31,8 +31,7 @@ defmodule Ilexir.HostApp do
       :ok <- wait_for_running(app) do
         {:ok, app}
       else
-        :error ->
-          {:error, :not_started}
+        error -> error
       end
   end
 
@@ -82,7 +81,7 @@ defmodule Ilexir.HostApp do
   end
 
   defp wait_for_stopping(app, failure_count \\ @fallback_failure_count)
-  defp wait_for_stopping(_app, 0), do: :error
+  defp wait_for_stopping(_app, 0), do: {:error, :not_still_running}
   defp wait_for_stopping(app, failure_count) do
     if running?(app) do
       :timer.sleep @fallback_timeout
@@ -92,7 +91,7 @@ defmodule Ilexir.HostApp do
     end
   end
   defp wait_for_running(app, failure_count \\ @fallback_failure_count)
-  defp wait_for_running(_app, 0), do: :error
+  defp wait_for_running(_app, 0), do: {:error, :node_not_running}
   defp wait_for_running(%{mix_app?: false} = app, failure_count) do
     if running?(app) do
       wait_for_code_server_running(app)
@@ -112,7 +111,7 @@ defmodule Ilexir.HostApp do
   end
 
   defp wait_for_code_server_running(app, failure_count \\ @fallback_failure_count)
-  defp wait_for_code_server_running(_app, 0), do: :error
+  defp wait_for_code_server_running(_app, 0), do: {:error, :code_server_nod_running}
   defp wait_for_code_server_running(app, failure_count) do
     if Ilexir.HostApp.call(app, :elixir_code_server, :module_info, []) do
       :ok
@@ -123,7 +122,7 @@ defmodule Ilexir.HostApp do
   end
 
   defp wait_for_app_loaded(app, failure_count \\ @fallback_failure_count)
-  defp wait_for_app_loaded(_app, 0), do: :error
+  defp wait_for_app_loaded(_app, 0), do: {:error, :application_not_loaded}
   defp wait_for_app_loaded(app, failure_count) do
     apps = Ilexir.HostApp.call(app, :application, :loaded_applications, [])
     if Enum.any?(apps, fn({app_name, _, _})-> app_name == String.to_atom(app.name) end) do
