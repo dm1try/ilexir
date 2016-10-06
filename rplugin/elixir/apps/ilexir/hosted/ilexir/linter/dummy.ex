@@ -4,11 +4,11 @@ defmodule Ilexir.Linter.Dummy do
   """
   alias Ilexir.QuickFix.Item
 
-  def run(file, "no errors") do
+  def run(_file, "no errors") do
     []
   end
 
-  def run(file, content) do
+  def run(file, _content) do
     [%Item{file: file, text: "dummy error", type: :error, location: %Item.Location{}}]
   end
 end
