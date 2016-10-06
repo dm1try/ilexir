@@ -1,5 +1,5 @@
 defmodule Ilexir.HostAppSpec do
-  use ESpec
+  use ESpec, async: false
   alias Ilexir.HostApp
 
   @nvim_session_name NVim.AppRunnerSession

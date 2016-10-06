@@ -6,8 +6,8 @@ defmodule Ilexir.HostApp do
 
   @runner Application.get_env(:ilexir, :host_app_runner) || Ilexir.HostApp.NvimTerminalRunner
 
-  @fallback_failure_count 10
-  @fallback_timeout 200
+  @fallback_failure_count 30
+  @fallback_timeout 400
 
   @doc "Returns remote name for hosted app."
   def remote_name(%Ilexir.HostApp{name: app_name, env: env}) do
@@ -122,7 +122,7 @@ defmodule Ilexir.HostApp do
     end
   end
 
-  defp wait_for_app_loaded(app, failure_count \\ 10)
+  defp wait_for_app_loaded(app, failure_count \\ @fallback_failure_count)
   defp wait_for_app_loaded(_app, 0), do: :error
   defp wait_for_app_loaded(app, failure_count) do
     apps = Ilexir.HostApp.call(app, :application, :loaded_applications, [])
