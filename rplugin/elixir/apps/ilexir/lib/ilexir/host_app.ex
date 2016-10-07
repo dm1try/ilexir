@@ -9,6 +9,8 @@ defmodule Ilexir.HostApp do
   @fallback_failure_count 30
   @fallback_timeout 400
 
+  @hosted_path Path.expand("#{__DIR__}/../../hosted")
+
   @doc "Returns remote name for hosted app."
   def remote_name(%Ilexir.HostApp{name: app_name, env: env}) do
     {:ok, hostname} = :inet.gethostname
@@ -28,7 +30,9 @@ defmodule Ilexir.HostApp do
                                           path: path,
                                           mix_app?: mix_app?(path)
                                         }, runner_opts),
-      :ok <- wait_for_running(app) do
+      :ok <- wait_for_running(app),
+      :ok <- bootstrap_core(app)
+      do
         {:ok, app}
       else
         error -> error
@@ -58,16 +62,20 @@ defmodule Ilexir.HostApp do
     |> :rpc.call(Code, :load_file, [file_path])
   end
 
+  def load_hosted_file(app, file_path) do
+    load_file(app, Path.join(@hosted_path, file_path))
+  end
+
   def compile_string(app, string, file) do
     app
     |> remote_name
-    |> :rpc.call(Code, :compile_string, [string, file])
+    |> :rpc.call(Ilexir.Compiler, :compile_string, [string, file])
   end
 
-  def eval_string(app, string, bindings, opts \\ []) do
+  def eval_string(app, string, file, line) do
     app
     |> remote_name
-    |> :rpc.call(Code, :eval_string, [string, bindings, opts])
+    |> :rpc.call(Ilexir.Compiler, :eval_string, [string, file, line])
   end
 
   def call(app, module, method, args \\ []) do
@@ -130,6 +138,16 @@ defmodule Ilexir.HostApp do
     else
       :timer.sleep @fallback_timeout
       wait_for_app_loaded(app, failure_count - 1)
+    end
+  end
+
+  defp bootstrap_core(app) do
+    with [_loaded] <- load_hosted_file(app, "ilexir/compiler/module_location.ex"),
+         [_loaded] <- load_hosted_file(app, "ilexir/compiler.ex"),
+         {:ok, _pid} <- call(app, Ilexir.Compiler, :start_link, []) do
+      :ok
+    else
+      _ -> {:error, :failed_bootsrapping_compiler}
     end
   end
 end

@@ -63,15 +63,41 @@ defmodule Ilexir.HostAppSpec do
     it "compiles string on the app host" do
       {:ok, app} = HostApp.start(app_path, [], nvim_session: @nvim_session_name)
 
-      [{mod, _code}] = HostApp.compile_string(app, "defmodule ExpectedModule, do: :nothing", "nofile")
+      [{mod, _code}] = HostApp.compile_string(app, """
+        defmodule ExpectedModule do
+          def some_code do
+          end
+        end
+      """, "some_file.ex")
       expect(mod).to eq ExpectedModule
     end
 
-    it "evals string on the app host" do
-      {:ok, app} = HostApp.start(app_path, [], nvim_session: @nvim_session_name)
+    context "the app succesfully started and some file compiled" do
+      let_ok :app, do: HostApp.start(app_path, [], nvim_session: @nvim_session_name)
+      let :filename, do: "compiled_file.ex"
+      let :compiled_line, do: "1 + 1"
+      let :expected_result, do: 2
+      let :line_number, do: 3
+      let :file_content do
+        """
+        defmodule ExpectedModule do
+          def some_method do
+            #{compiled_line}
+          end
+        end
+        """
+      end
 
-      {result, _bindings} = HostApp.eval_string(app, "1 + a", [a: 2])
-      expect(result).to eq 3
+      before do
+        HostApp.compile_string(app, file_content, filename)
+      end
+
+      it "evals string on the app host for previously compiled file" do
+        {status, result} = HostApp.eval_string(app, compiled_line, filename, 2)
+
+        expect(status).to eq(:ok)
+        expect(result).to eq(expected_result)
+      end
     end
 
     it "calls method on the app" do
