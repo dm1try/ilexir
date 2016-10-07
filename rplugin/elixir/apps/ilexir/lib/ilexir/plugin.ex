@@ -9,15 +9,15 @@ defmodule Ilexir.Plugin do
   alias Ilexir.Linter
 
   # Host manager interface
-  command ilexir_start_app(path) do
-    response_to_vim = case Ilexir.HostAppManager.start_app(path) do
-      {:ok, _app} ->
-        "application successfuly started!"
-      {:error, error} ->
-        "problem with running the app: #{inspect error}"
-    end
+  command ilexir_start_app(path), do: start_app(path)
 
-    vim_command "echo '#{response_to_vim}'"
+  command ilexir_start_in_working_dir do
+    case nvim_call_function("getcwd", []) do
+      {:ok, working_dir} ->
+        start_app(working_dir)
+      _ ->
+        warning_with_echo("Unable to get 'current_dir'")
+    end
   end
 
   command ilexir_running_apps do
@@ -68,6 +68,15 @@ defmodule Ilexir.Plugin do
   on_event :insert_leave, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :text_changed, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :buf_write_post, [pattern: "*.{ex,exs}"], do: lint(Linter.Compiler)
+
+  defp start_app(path) do
+    case AppManager.start_app(path) do
+      {:ok, app} ->
+        ~s[Application "#{app.name}(#{app.env})" successfully started!]
+      {:error, error} ->
+        "Problem with running the app: #{inspect error}"
+    end |> echo
+  end
 
   defp lint(linter_mod) do
     with {:ok, buffer} <- vim_get_current_buffer,
