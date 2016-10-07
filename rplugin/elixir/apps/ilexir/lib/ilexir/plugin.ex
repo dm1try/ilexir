@@ -57,6 +57,14 @@ defmodule Ilexir.Plugin do
     end
   end
 
+  # Linter interface
+
+  command ilexir_lint(linter_name) do
+    name = String.capitalize(linter_name)
+    linter_mod = Module.concat(Linter, name)
+    lint(linter_mod)
+  end
+
   on_event :insert_leave, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :text_changed, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :buf_write_post, [pattern: "*.{ex,exs}"], do: lint(Linter.Compiler)
