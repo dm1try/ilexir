@@ -99,11 +99,13 @@ defmodule Ilexir.Plugin do
     echo(message)
   end
 
+  @highlight_group "Special"
+
   def echo(param) do
-    vim_command "echo '#{param}'"
+    vim_command ~s(echohl #{@highlight_group} | echo '#{param}' | echohl")
   end
 
   def echo_i(param) do
-    vim_command "echo '#{inspect param, pretty: true}'"
+    param |> inspect(pretty: true) |> echo
   end
 end
