@@ -39,6 +39,19 @@ defmodule Ilexir.Linter do
     Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/compiler.ex")
     Ilexir.HostApp.load_file(app, "#{@hosted_path}/standard_error_stub.ex")
     Ilexir.HostApp.call(app, Ilexir.StandardErrorStub, :start_link, [])
+
+    bootstrap_credo(app)
   end
+
+  defp bootstrap_credo(%{mix_app?: true} = app) do
+    config = HostApp.call(app, Mix.Project, :config, [])
+
+    if Enum.any?(config[:deps], fn(dep)-> elem(dep, 0) == :credo end) do
+      HostApp.call(app, Application, :ensure_all_started, [:credo])
+      HostApp.load_file(app, "#{@hosted_path}/linter/credo.ex")
+    end
+  end
+
+  defp bootstrap_credo(_app), do: nil
 end
 

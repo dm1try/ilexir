@@ -24,6 +24,7 @@ defmodule Ilexir.Mixfile do
 
   defp deps do
     [{:nvim, "~> 0.1.2"},
-     {:espec, "~> 1.0.0", only: [:dev, :test]}]
+     {:espec, "~> 1.0.0", only: [:dev, :test]},
+     {:credo, only: [:dev, :test]}]
   end
 end
