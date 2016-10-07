@@ -8,7 +8,7 @@ defmodule Ilexir.Linter.Compiler do
       if !old_ignore_module_opt, do: Code.compiler_options(ignore_module_conflict: true)
 
       warnings = StandardErrorStub.with_stab_standard_error fn->
-        Code.compile_string(content, file)
+        Ilexir.Compiler.compile_string(content, file)
       end
 
       if !old_ignore_module_opt, do: Code.compiler_options(ignore_module_conflict: false)
