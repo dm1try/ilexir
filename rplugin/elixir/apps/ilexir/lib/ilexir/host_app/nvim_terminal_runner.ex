@@ -7,7 +7,7 @@ defmodule Ilexir.HostApp.NvimTerminalRunner do
     exec_line = "cd #{path} && elixir --no-halt --sname #{remote_name}"
     exec_line = if mix_app?, do: "#{exec_line} -S mix app.start", else: exec_line
 
-    command = "new | call termopen('#{exec_line}') | set noma | hide"
+    command = "new | call termopen('#{exec_line}') | hide"
     nvim_session.vim_command(command)
     {:ok, app}
   end
