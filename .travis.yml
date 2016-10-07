@@ -10,6 +10,7 @@ before_install:
   - sudo apt-get install neovim
   - cd rplugin/elixir/apps/ilexir
 script:
+  - mix espec spec/host_app_spec.exs --silent || echo true
   - mix espec
 notifications:
   recipients:
