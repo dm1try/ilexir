@@ -24,23 +24,9 @@ defmodule Ilexir.Plugin do
     vim_command "echo '#{inspect apps}'"
   end
 
-  on_event :insert_leave,
-    pattern: "*.{ex,exs}"
-  do
-    lint(Linter.Ast)
-  end
-
-  on_event :text_changed,
-    pattern: "*.{ex,exs}"
-  do
-    lint(Linter.Ast)
-  end
-
-  on_event :buf_write_post,
-    pattern: "*.{ex,exs}"
-  do
-    lint(Linter.Compiler)
-  end
+  on_event :insert_leave, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
+  on_event :text_changed, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
+  on_event :buf_write_post, [pattern: "*.{ex,exs}"], do: lint(Linter.Compiler)
 
   defp lint(linter_mod) do
     with {:ok, buffer} <- vim_get_current_buffer,
