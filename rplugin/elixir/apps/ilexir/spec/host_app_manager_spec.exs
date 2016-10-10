@@ -8,13 +8,13 @@ defmodule Ilexir.HostAppManagerSpec do
 
   before do
     {:ok, manager} = Manager.start_link
-    {:ok, embed_nvim_session} = NVim.Test.Session.Embed.start_link(session_name: NVim.Session)
+    {:ok, embed_nvim_session} = NVim.Session.Embed.start_link(session_name: NVim.Session)
     {:shared, manager: manager, embed_nvim_session: embed_nvim_session}
   end
 
   finally do
     GenServer.stop(shared.manager)
-    NVim.Test.Session.Embed.stop(shared.embed_nvim_session)
+    NVim.Session.Embed.stop(shared.embed_nvim_session)
   end
 
   describe ".add_app_path" do

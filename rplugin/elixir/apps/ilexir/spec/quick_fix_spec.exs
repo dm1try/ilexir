@@ -1,7 +1,7 @@
 defmodule Ilexir.QuickFixSpec do
   use ESpec, async: false
   alias Ilexir.QuickFix
-  alias NVim.Test.Session.Embed, as: EmbedSession
+  alias NVim.Session.Embed, as: EmbedSession
 
   import NVim.Session
 

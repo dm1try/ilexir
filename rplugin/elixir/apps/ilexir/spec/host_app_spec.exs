@@ -24,12 +24,12 @@ defmodule Ilexir.HostAppSpec do
     let :node_name, do: HostApp.remote_name(expected_app)
 
     before do
-     {:ok, pid} = NVim.Test.Session.Embed.start_link(session_name: @nvim_session_name)
+     {:ok, pid} = NVim.Session.Embed.start_link(session_name: @nvim_session_name)
      {:shared, embed_pid: pid}
     end
 
     finally do
-      NVim.Test.Session.Embed.stop(shared.embed_pid)
+      NVim.Session.Embed.stop(shared.embed_pid)
     end
 
     it "starts the app host which ready for remote calls" do
@@ -114,12 +114,12 @@ defmodule Ilexir.HostAppSpec do
     let :node_name, do: HostApp.remote_name(app)
 
     before do
-     {:ok, pid} = NVim.Test.Session.Embed.start_link(session_name: @nvim_session_name)
+     {:ok, pid} = NVim.Session.Embed.start_link(session_name: @nvim_session_name)
      {:shared, embed_pid: pid}
     end
 
     finally do
-      NVim.Test.Session.Embed.stop(shared.embed_pid)
+      NVim.Session.Embed.stop(shared.embed_pid)
     end
 
     it "starts the host and loads Mix application" do

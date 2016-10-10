@@ -1,7 +1,7 @@
 defmodule Ilexir.LinterSpec do
   use ESpec, async: false
   alias Ilexir.{Linter, QuickFix, HostAppManager}
-  alias NVim.Test.Session.Embed, as: EmbedSession
+  alias NVim.Session.Embed, as: EmbedSession
 
   before do
     {:ok, embed_session_pid} = EmbedSession.start_link
