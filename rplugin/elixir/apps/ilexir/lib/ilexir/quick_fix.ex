@@ -30,7 +30,7 @@ defmodule Ilexir.QuickFix do
         qf_items = items_to_qf_param(items)
         vim_call_function("setqflist", [qf_items,"r", "Ilexir"])
         qf_window_size = length(items)
-        vim_command("belowright copen #{qf_window_size} | wincmd p")
+        vim_command("bo copen #{qf_window_size} | wincmd p")
 
         highlight_items(items, active_buffer)
       {:error, error} ->
