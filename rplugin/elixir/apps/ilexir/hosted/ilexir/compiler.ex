@@ -89,19 +89,13 @@ defmodule Ilexir.Compiler do
     {:noreply, state}
   end
 
-  defp inject_after_compile_callback({:defmodule, a, [b, [do: nil]]} = _module_ast, callback_ast) do
-    new_block = {:__block__, [], [[callback_ast]]}
-    {:defmodule, a, [b, [do: new_block]]}
-  end
-
-  defp inject_after_compile_callback({:defmodule, a, [b, [do: {:def, _, _} = func_def]]} = _module_ast, callback_ast) do
-    new_block = {:__block__, [], [func_def] ++ [callback_ast]}
-    {:defmodule, a, [b, [do: new_block]]}
-  end
-
-  defp inject_after_compile_callback({:defmodule, a, [b, [do: block]]} = _module_ast, callback_ast) do
-    {:__block__, opt, inner_items} = block
+  defp inject_after_compile_callback({:defmodule, a, [b, [do: {:__block__, opt, inner_items}]]} = _module_ast, callback_ast) do
     new_block = {:__block__, opt, inner_items ++ [[callback_ast]]}
+    {:defmodule, a, [b, [do: new_block]]}
+  end
+
+  defp inject_after_compile_callback({:defmodule, a, [b, [do: not_a_block]]} = _module_ast, callback_ast) do
+    new_block = {:__block__, [], [not_a_block] ++ [callback_ast]}
     {:defmodule, a, [b, [do: new_block]]}
   end
 
