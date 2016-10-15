@@ -1,12 +1,12 @@
 defmodule Ilexir.Plugin do
   use NVim.Plugin
   import NVim.Session
-
   require Logger
 
   alias Ilexir.HostAppManager, as: AppManager
   alias Ilexir.HostApp, as: App
   alias Ilexir.Linter
+  alias Ilexir.Autocomplete.OmniFunc, as: Autocomplete
 
   # Host manager interface
   command ilexir_start_app(path), do: start_app(path)
@@ -22,7 +22,6 @@ defmodule Ilexir.Plugin do
 
   command ilexir_running_apps do
     apps = AppManager.running_apps()
-
     vim_command "echo '#{inspect apps}'"
   end
 
@@ -68,6 +67,60 @@ defmodule Ilexir.Plugin do
   on_event :insert_leave, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :text_changed, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :buf_write_post, [pattern: "*.{ex,exs}"], do: lint(Linter.Compiler)
+
+  function ilexir_complete(find_start, base),
+    pre_evaluate: %{
+      "col('.') - 1" => current_column_number,
+      "line('.') - 1" => current_line_number,
+      "getline('.')" => current_line
+    }
+  do
+    if find_start in [1, "1"] do
+      find_start_position(current_line, current_column_number)
+    else
+      do_complete(base, current_line, current_column_number, current_line_number)
+    end
+  end
+
+  defp find_start_position(current_line, current_column_number) do
+    with {:ok, buffer} <- vim_get_current_buffer,
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename) do
+
+      App.call(app, Autocomplete, :find_complete_position, [current_line, current_column_number])
+    else
+      _ -> -1
+    end
+  end
+
+  defp do_complete(base, current_line, column_number, line_number) do
+    with {:ok, buffer} <- vim_get_current_buffer,
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename) do
+
+    expand_on_host(app, current_line, column_number, base, {filename, line_number})
+    else
+      error ->
+        Logger.warn("Unable to complete: #{inspect error}")
+        -1
+    end
+  end
+
+  defp expand_on_host(app, current_line, column_number, base, location) do
+    env   = App.call(app, Ilexir.Compiler, :get_env, [location])
+    items = App.call(app, Autocomplete, :expand, [current_line, column_number, base, [env: env]])
+
+    Enum.map items, fn(%{text: text, abbr: abbr, type: type, short_desc: short_desc})->
+      %{"word"=>text, "abbr"=> abbr, "kind" => type, "menu" => short_desc}
+    end
+  end
+
+  # First assumption use FileType event for this.
+  # TODO: check why FileType event does not triggered for openning the file directly:
+  # $ nvim some_file.ex
+  on_event :buf_enter, pattern: "*.{ex,exs}" do
+    vim_command "set omnifunc=IlexirComplete"
+  end
 
   defp start_app(path) do
     case AppManager.start_app(path) do

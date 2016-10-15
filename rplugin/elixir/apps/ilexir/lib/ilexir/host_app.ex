@@ -144,10 +144,13 @@ defmodule Ilexir.HostApp do
   defp bootstrap_core(app) do
     with [_loaded] <- load_hosted_file(app, "ilexir/compiler/module_location.ex"),
          [_loaded] <- load_hosted_file(app, "ilexir/compiler.ex"),
-         {:ok, _pid} <- call(app, Ilexir.Compiler, :start_link, []) do
+         {:ok, _pid} <- call(app, Ilexir.Compiler, :start_link, []),
+         [_loaded|_] <- load_hosted_file(app, "ilexir/code_server.ex"),
+         {:ok, _pid} <- call(app, Ilexir.CodeServer, :start_link, []),
+         [_loaded|_] <- load_hosted_file(app, "ilexir/autocomplete.ex") do
       :ok
     else
-      _ -> {:error, :failed_bootsrapping_compiler}
+      error -> {:error, failed_bootsrapping_core: "#{inspect error}"}
     end
   end
 end
