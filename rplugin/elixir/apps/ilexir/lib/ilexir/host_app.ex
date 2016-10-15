@@ -53,14 +53,16 @@ defmodule Ilexir.HostApp do
 
   def prepend_code_path(app_name, code_path) do
     app_name
-      |> remote_name
-      |> :rpc.call(Code, :prepend_path, [code_path])
+    |> remote_name
+    |> :rpc.call(Code, :prepend_path, [code_path])
+    |> rpc_result
   end
 
   def load_file(app, file_path) do
     app
     |> remote_name
     |> :rpc.call(Code, :load_file, [file_path])
+    |> rpc_result
   end
 
   def load_hosted_file(app, file_path) do
@@ -71,18 +73,21 @@ defmodule Ilexir.HostApp do
     app
     |> remote_name
     |> :rpc.call(Ilexir.Compiler, :compile_string, [string, file])
+    |> rpc_result
   end
 
   def eval_string(app, string, file, line) do
     app
     |> remote_name
     |> :rpc.call(Ilexir.Compiler, :eval_string, [string, file, line])
+    |> rpc_result
   end
 
   def call(app, module, method, args \\ []) do
     app
     |> remote_name
     |> :rpc.call(module, method, args)
+    |> rpc_result
   end
 
   defp mix_app?(path) do
@@ -154,4 +159,7 @@ defmodule Ilexir.HostApp do
       error -> {:error, failed_bootsrapping_core: "#{inspect error}"}
     end
   end
+
+  defp rpc_result({:badrpc, {_, error}}), do: {:error, error}
+  defp rpc_result(result), do: result
 end
