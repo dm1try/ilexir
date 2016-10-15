@@ -45,8 +45,13 @@ defmodule Ilexir.Plugin do
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.lookup(filename) do
 
-      content = Enum.join(lines, "\n")
-      App.compile_string(app, content, filename)
+       content = Enum.join(lines, "\n")
+       case App.compile_string(app, content, filename) do
+          {:error, error} ->
+            echo "Compile error: #{inspect error}"
+          _ ->
+            echo "Compiled."
+       end
     else
       error ->
         warning_with_echo("Unable to compile the file: #{inspect error}")
