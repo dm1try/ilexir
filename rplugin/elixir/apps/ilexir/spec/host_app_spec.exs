@@ -44,7 +44,7 @@ defmodule Ilexir.HostAppSpec do
     it "stops the app host" do
       {:ok, app} = HostApp.start(app_path, [], nvim_session: @nvim_session_name)
 
-      expect(HostApp.stop(app)).to eq(:ok)
+      expect(HostApp.stop(app, nvim_session: @nvim_session_name)).to eq({:ok, app})
     end
 
     it "checks running status of the app host" do

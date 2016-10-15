@@ -25,6 +25,18 @@ defmodule Ilexir.Plugin do
     vim_command "echo '#{inspect apps}'"
   end
 
+  command ilexir_stop_app do
+    with {:ok, buffer} <- vim_get_current_buffer,
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename),
+         :ok <- AppManager.stop_app(app) do
+
+      echo ~s[Application "#{app.name}(#{app.env})" stopped!]
+    else
+      error ->
+        warning_with_echo("Unable to stop the app: #{inspect error}")
+    end
+  end
   # Compiler interface
 
   command ilexir_compile do

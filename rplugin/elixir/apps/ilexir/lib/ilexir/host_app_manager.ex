@@ -1,6 +1,8 @@
 defmodule Ilexir.HostAppManager do
   use GenServer
 
+  require Logger
+
   def start_link(_args \\ [], _opts \\ []) do
     GenServer.start_link(__MODULE__, [], [name: __MODULE__])
   end
@@ -20,6 +22,10 @@ defmodule Ilexir.HostAppManager do
 
   def start_app(path, args \\ []) do
     GenServer.call(__MODULE__, {:start_app, path, args})
+  end
+
+  def stop_app(app) do
+    GenServer.call(__MODULE__, {:stop_app, app})
   end
 
   def add_app_path(path, _args \\ []) do
@@ -97,6 +103,19 @@ defmodule Ilexir.HostAppManager do
 
   def handle_call(:running_apps, _from, state) do
     {:reply, state.running_apps, state}
+  end
+
+  def handle_call({:stop_app, app}, _from, %{running_apps: running_apps} = state) do
+    running_apps = case Ilexir.HostApp.stop(app, nvim_session: NVim.Session) do
+      {:ok, app} ->
+        Enum.reject(running_apps, &(&1 == app))
+      {:error, error} ->
+        Logger.warn "problem with stopping the app: #{inspect error}"
+        running_apps
+    end
+
+    state = %{state | running_apps: running_apps}
+    {:reply, :ok, state}
   end
 
   def handle_cast({:subscribe_on_app_load, subscriber}, state) do

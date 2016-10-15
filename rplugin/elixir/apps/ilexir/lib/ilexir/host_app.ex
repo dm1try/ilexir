@@ -40,9 +40,10 @@ defmodule Ilexir.HostApp do
   end
 
   @doc "Stops the app"
-  def stop(app) do
+  def stop(app, runner_opts \\ []) do
     :rpc.call(remote_name(app), :init, :stop, [])
     wait_for_stopping(app)
+    @runner.stop_app(app, runner_opts)
   end
 
   @doc "Checks if the app is running"

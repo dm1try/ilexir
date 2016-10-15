@@ -64,16 +64,17 @@ defmodule Ilexir.HostAppManagerSpec do
     end
   end
 
-  describe ".stop_all" do
+  describe ".stop_app" do
+    let_ok :app, do: Manager.start_app(app_path)
+
     before do
-      Manager.start_app(app_path)
-      :ok
+      app
     end
 
-    it "stops running apps" do
+    it "stops running app" do
       expect(length(Manager.running_apps())).to eq(1)
 
-      expect(Manager.stop_all).to eq(:ok)
+      expect(Manager.stop_app(app)).to eq(:ok)
 
       expect(length(Manager.running_apps())).to eq(0)
       expect(Ilexir.HostApp.running?(app)).to be_falsy
