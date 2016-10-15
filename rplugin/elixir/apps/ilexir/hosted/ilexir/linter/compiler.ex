@@ -25,7 +25,7 @@ defmodule Ilexir.Linter.Compiler do
     end)
   end
 
-  def compiler_warning_to_item(%{file: file, text: text, line: line} = _warning, _file) do
+  def compiler_warning_to_item(%{text: text, line: line} = _warning, file) do
     %Item{file: file, text: text, type: :warning, location: %Item.Location{line: line}}
   end
 
@@ -33,7 +33,7 @@ defmodule Ilexir.Linter.Compiler do
     %Item{file: file, text: "#{inspect warning}", type: :warning, location: %Item.Location{line: 1}}
   end
 
-  def compiler_error_to_item(%{description: text, line: line, file: file}, _file) do
+  def compiler_error_to_item(%{description: text, line: line, file: _file}, file) do
     %Item{file: file, text: text, type: :error, location: %Item.Location{line: line}}
   end
 
