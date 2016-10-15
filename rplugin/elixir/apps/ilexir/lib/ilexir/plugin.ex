@@ -119,8 +119,15 @@ defmodule Ilexir.Plugin do
   end
 
   defp expand_on_host(app, current_line, column_number, base, location) do
-    env   = App.call(app, Ilexir.Compiler, :get_env, [location])
-    items = App.call(app, Autocomplete, :expand, [current_line, column_number, base, [env: env]])
+    complete_opts = case App.call(app, Ilexir.Compiler, :get_env, [location]) do
+      nil ->
+        flash_echo "Current file is not compiled by Ilexir, use :IlexirCompile to extend completion results"
+        []
+      env ->
+        [env: env]
+    end
+
+    items = App.call(app, Autocomplete, :expand, [current_line, column_number, base, complete_opts])
 
     Enum.map items, fn(%{text: text, abbr: abbr, type: type, short_desc: short_desc})->
       %{"word"=>text, "abbr"=> abbr, "kind" => type, "menu" => short_desc}
@@ -181,5 +188,12 @@ defmodule Ilexir.Plugin do
 
   def echo_i(param) do
     param |> inspect(pretty: true) |> echo
+  end
+
+  defp flash_echo(param, delay \\ 2000) do
+    spawn_link fn->
+      :timer.sleep delay
+      echo(param)
+    end
   end
 end
