@@ -33,8 +33,8 @@ defmodule Ilexir.Compiler do
     GenServer.call(__MODULE__, {:eval_string, string, file_name, line_number})
   end
 
-  def get_env(module) do
-    GenServer.call(__MODULE__, {:get_env, module})
+  def get_env(param) do
+    GenServer.call(__MODULE__, {:get_env, param})
   end
 
   def set_env(env) do
@@ -68,6 +68,11 @@ defmodule Ilexir.Compiler do
   def handle_call({:set_env, env}, _from, state) do
     state = update_env(state, env.module, env)
     {:reply, :ok, state}
+  end
+
+  def handle_call({:get_env, {file, line_number}}, _from, state) do
+    module = ModuleLocation.find_module(state.locations[file], line_number)
+    {:reply, get_env(state, module), state}
   end
 
   def handle_call({:get_env, module}, _from, state) do
