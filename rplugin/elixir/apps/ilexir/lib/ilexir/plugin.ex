@@ -9,12 +9,17 @@ defmodule Ilexir.Plugin do
   alias Ilexir.Autocomplete.OmniFunc, as: Autocomplete
 
   # Host manager interface
-  command ilexir_start_app(path), do: start_app(path)
+  command ilexir_start_app(params),
+    complete: :file
+  do
+    [path | args] = params
+    start_app(path, args)
+  end
 
-  command ilexir_start_in_working_dir do
+  command ilexir_start_in_working_dir(params) do
     case nvim_call_function("getcwd", []) do
       {:ok, working_dir} ->
-        start_app(working_dir)
+        start_app(working_dir, params)
       _ ->
         warning_with_echo("Unable to get 'current_dir'")
     end
@@ -146,8 +151,10 @@ defmodule Ilexir.Plugin do
     vim_command "set omnifunc=IlexirComplete"
   end
 
-  defp start_app(path) do
-    case AppManager.start_app(path) do
+  defp start_app(path, command_params) do
+    {args, _, _} = OptionParser.parse(command_params)
+
+    case AppManager.start_app(path, args) do
       {:ok, app} ->
         ~s[Application "#{app.name}(#{app.env})" successfully started!]
       {:error, error} ->
