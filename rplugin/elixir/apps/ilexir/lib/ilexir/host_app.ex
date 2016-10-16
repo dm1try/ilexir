@@ -24,10 +24,12 @@ defmodule Ilexir.HostApp do
   """
   def start(path, args \\ [], runner_opts \\ []) do
     app_name = Keyword.get(args, :app_name, Path.basename(path))
+    app_env = Keyword.get(args, :env, "dev")
 
     with {:ok, app} <-  @runner.start_app(%__MODULE__{
                                           name: app_name,
                                           path: path,
+                                          env: app_env,
                                           mix_app?: mix_app?(path)
                                         }, runner_opts),
       :ok <- wait_for_running(app),
