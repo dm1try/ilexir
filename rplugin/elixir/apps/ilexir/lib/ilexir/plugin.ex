@@ -33,25 +33,65 @@ defmodule Ilexir.Plugin do
   command ilexir_stop_app do
     with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename),
-         :ok <- AppManager.stop_app(app) do
+         {:ok, app} <- AppManager.lookup(filename) do
 
-      echo ~s[Application "#{app.name}(#{app.env})" stopped!]
+      AppManager.stop_app(app)
+      echo ~s[Application "#{app.name}(#{app.env})" going to stop.]
     else
       error ->
         warning_with_echo("Unable to stop the app: #{inspect error}")
     end
   end
+
+  command ilexir_open_iex do
+    with {:ok, buffer} <- vim_get_current_buffer,
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename) do
+
+    {:ok, wins} = nvim_list_wins()
+
+    app_win = Enum.find_value(wins, fn(win)->
+      case  nvim_win_get_var(win, "ilexir_app") do
+        {:ok, ilexir_remote_name} ->
+          ilexir_remote_name == to_string(app.remote_name) && win
+         _ ->
+           nil
+      end
+    end)
+
+    open_command = "res 8| set wfh | terminal iex --sname #{app.name}_#{app.env}_iex --remsh #{app.remote_name}"
+
+    if app_win do
+      nvim_set_current_win app_win
+      nvim_command "vsplit | #{open_command}"
+    else
+      nvim_command "bot new | #{open_command}"
+    end
+    else
+      error ->
+        warning_with_echo("Unable to open IEx: #{inspect error}")
+    end
+  end
+
+  function ilexir_get_current_app() do
+    with {:ok, buffer} <- vim_get_current_buffer,
+    {:ok, filename} <- nvim_buf_get_name(buffer),
+    {:ok, app} <- AppManager.lookup(filename) do
+      Map.take(app, [:id, :name, :env, :path, :remote_name])
+    else
+      _ -> -1
+    end
+  end
   # Compiler interface
 
   command ilexir_compile do
-    with {:ok, buffer} <- vim_get_current_buffer,
+     with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.lookup(filename) do
 
        content = Enum.join(lines, "\n")
-       case App.compile_string(app, content, filename) do
+       case App.call(app, Ilexir.Compiler, :compile_string, [content, filename]) do
           {:error, error} ->
             echo "Compile error: #{inspect error}"
           _ ->
@@ -69,9 +109,8 @@ defmodule Ilexir.Plugin do
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.lookup(filename) do
 
-      content = Enum.join(lines, "\n")
-
-      evaluate_with_undefined(app, content, filename, range_start)
+           content = Enum.join(lines, "\n")
+           evaluate_with_undefined(app, content, filename, range_start)
     else
       error ->
         warning_with_echo("Unable to evaluate lines: #{inspect error}")
@@ -154,12 +193,27 @@ defmodule Ilexir.Plugin do
   defp start_app(path, command_params) do
     {args, _, _} = OptionParser.parse(command_params)
 
-    case AppManager.start_app(path, args) do
+    case AppManager.start_app(path, args ++ [callback: &start_callback/1]) do
       {:ok, app} ->
-        ~s[Application "#{app.name}(#{app.env})" successfully started!]
+        ~s[Application "#{app.name}(#{app.env})" is loading...]
       {:error, error} ->
         "Problem with running the app: #{inspect error}"
     end |> echo
+  end
+
+  def start_callback(%{status: status} = app) do
+    message = case status do
+      :running ->
+        ~s[Application "#{app.name}(#{app.env})" ready!]
+      :timeout ->
+        ~s[Application "#{app.name}(#{app.env})" unable to start!]
+      :down ->
+        ~s[Application "#{app.name}(#{app.env})" was shut down!]
+      _ ->
+        ~s[Application "#{app.name}(#{app.env})" changed status to #{status}!]
+    end
+
+    echo message
   end
 
   defp lint(linter_mod) do
@@ -177,11 +231,11 @@ defmodule Ilexir.Plugin do
   end
 
   defp evaluate_with_undefined(app, content, filename, line) do
-    case App.eval_string(app, content, filename, line) do
+    case App.call(app, Ilexir.Compiler, :eval_string, [content, filename, line]) do
       {:ok, result} -> echo_i(result)
       {:undefined, var} ->
         {:ok, result} = nvim_call_function("input", ["Please provide '#{var}' to continue: "])
-        App.eval_string(app, "#{var} = #{result}", filename, line)
+        App.call(app, Ilexir.Compiler, :eval_string, ["#{var} = #{result}", filename, line])
         evaluate_with_undefined(app, content, filename, line)
       {:error, error} -> echo_i(error)
     end

@@ -6,8 +6,8 @@ defmodule Ilexir.CodeServer do
   use GenServer
   @cache_name :code_server_cache
 
-  def start_link do
-    GenServer.start_link(__MODULE__, [], [name: __MODULE__])
+  def start_link(args \\ [], opts \\ []) do
+    GenServer.start_link(__MODULE__, args, opts ++ [name: __MODULE__])
   end
 
   def init(_args) do

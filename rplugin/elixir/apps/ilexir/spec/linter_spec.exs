@@ -12,18 +12,34 @@ defmodule Ilexir.LinterSpec do
      embed_session_pid: embed_session_pid, linter_pid: linter_pid}
   end
 
+
+  xcontext "some mix app is running" do
+    let :runner_id, do: "linter_test"
+
+    before do
+      HostAppManager.start_app(Ilexir.Fixtures.test_elixir_mix_project_path,
+                               runner_id: runner_id,
+                               callback: fn(app)-> send ESpec.Runner, {:started, app} end)
+
+      app = receive do {:started, app} -> app end
+
+      {:shared, app: app}
+    end
+
+    finally do
+      HostAppManager.stop_app(shared.app, runner_id: runner_id)
+      :ok
+    end
+
+    it "runs the linter on hosted app" do
+      expect(Linter.check("file", "content", Ilexir.Linter.Dummy, shared.app)).to eq(:ok)
+    end
+  end
+
   finally do
     GenServer.stop(shared.quick_fix_pid)
     GenServer.stop(shared.host_manager_pid)
     GenServer.stop(shared.linter_pid)
     EmbedSession.stop(shared.embed_session_pid)
-  end
-
-  context "some mix app is running" do
-    let_ok :app, do: HostAppManager.start_app(Ilexir.Fixtures.test_elixir_mix_project_path)
-
-    it "runs the linter on hosted app" do
-      expect(Linter.check("file", "content", Ilexir.Linter.Dummy, app)).to eq(:ok)
-    end
   end
 end

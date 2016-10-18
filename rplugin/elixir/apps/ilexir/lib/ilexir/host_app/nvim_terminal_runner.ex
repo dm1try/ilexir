@@ -1,36 +1,27 @@
 defmodule Ilexir.HostApp.NvimTerminalRunner do
-  def start_app(%Ilexir.HostApp{path: path, mix_app?: mix_app?, env: env} = app, opts) do
+  alias Ilexir.HostApp, as: App
+
+  @behaviour App.Runner
+
+  def start_app(%App{path: path, exec_path: exec_path, remote_name: remote_name} = app, opts) do
     nvim_session = Keyword.get(opts, :nvim_session) || raise "nvim_session is required"
 
-    remote_name = Ilexir.HostApp.remote_name(app)
+    nvim_session.nvim_command("bot new|res 8|set wfh|terminal")
 
-    mix_env = if mix_app?, do: "MIX_ENV=#{env}", else: ""
-    exec_line = "cd #{path} && #{mix_env} elixir --no-halt --sname #{remote_name}"
-    exec_line = if mix_app?, do: "#{exec_line} -S mix app.start", else: exec_line
+    {:ok, current_window} = nvim_session.nvim_get_current_win()
+    nvim_session.nvim_win_set_var(current_window, "ilexir_app", remote_name)
 
-    command = "new | call termopen('#{exec_line}') | silent file #{remote_name} | hide"
-    nvim_session.vim_command(command)
+    nvim_session.nvim_feedkeys("cd #{path}\n", "i", false)
+    nvim_session.nvim_feedkeys("#{exec_path}\n", "i", false)
+    nvim_session.nvim_command("stopinsert | wincmd p")
+
     {:ok, app}
   end
 
-  def stop_app(app, opts) do
-    nvim_session = Keyword.get(opts, :nvim_session) || raise "nvim_session is required"
-
-    remote_name = Ilexir.HostApp.remote_name(app)
-
-    {:ok, buffers} = nvim_session.nvim_list_bufs()
-
-    buffer_name = Enum.find_value(buffers, fn(buffer)->
-      {:ok, buffer_name} = nvim_session.nvim_buf_get_name(buffer)
-      String.contains?(buffer_name,to_string(remote_name)) && buffer_name
-    end)
-
-    if buffer_name do
-      nvim_session.nvim_command("bdelete! #{buffer_name}")
-
-      {:ok, app}
-    else
-      {:error, "application buffer is not found"}
-    end
+  def on_exit(app, _opts) do
+    # do nothing atm
+    {:ok, app}
   end
 end
+
+

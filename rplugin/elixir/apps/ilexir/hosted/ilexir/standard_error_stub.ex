@@ -10,20 +10,20 @@ defmodule Ilexir.StandardErrorStub do
     old_ansi_enabled = :application.get_env(:elixir, :ansi_enabled)
     if old_ansi_enabled, do: :application.set_env(:elixir, :ansi_enabled, false)
 
-    __MODULE__.clear()
-    __MODULE__.register()
+    clear()
+    register()
 
     try do
       callback.()
     after
-      __MODULE__.unregister()
+      unregister()
       if old_ansi_enabled, do: :application.set_env(:elixir, :ansi_enabled, true)
     end
 
-     __MODULE__.warnings()
+     warnings()
   end
 
-  def start_link do
+  def start_link(_args \\ [], _opts \\ []) do
     GenServer.start_link(__MODULE__, [], [name: :standard_error_stub])
   end
 

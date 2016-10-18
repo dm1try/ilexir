@@ -1,8 +1,8 @@
 defmodule Ilexir.Linter do
   use GenServer
-  alias  Ilexir.{QuickFix, HostApp}
+  require Logger
 
-  @hosted_path Path.expand("#{__DIR__}/../../hosted/ilexir")
+  alias  Ilexir.{QuickFix, HostApp}
 
   def start_link(args \\ [], _opts \\ []) do
     {:ok, pid} = result = GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -15,32 +15,37 @@ defmodule Ilexir.Linter do
   end
 
   def handle_call({:check, file, content, linter, app}, _from, state) do
-    fix_items = HostApp.call(app, linter, :run, [file, content])
-
-    if Enum.any?(fix_items) do
-      QuickFix.update_items(fix_items)
-    else
-      QuickFix.clear_items()
+    case HostApp.call(app, linter, :run, [file, content]) do
+      fix_items when is_list(fix_items) ->
+        if Enum.any?(fix_items) do
+          QuickFix.update_items(fix_items)
+        else
+          QuickFix.clear_items()
+        end
+      {:error, error} ->
+        Logger.error "Problem with running a linter(#{linter}): #{inspect error}"
     end
 
     {:reply, :ok, state}
   end
 
-  def handle_info({:on_app_load, app}, state) do
-    bootstrap_app(app)
+  def handle_call({:on_app_load, app}, _from, state) do
+    workers = bootstrap_app(app)
 
-    {:noreply, state}
+    {:reply, {:ok, workers}, state}
   end
 
   defp bootstrap_app(app) do
-    Ilexir.HostApp.load_file(app, "#{__DIR__}/quick_fix/item.ex")
-    Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/dummy.ex")
-    Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/ast.ex")
-    Ilexir.HostApp.load_file(app, "#{@hosted_path}/linter/compiler.ex")
-    Ilexir.HostApp.load_file(app, "#{@hosted_path}/standard_error_stub.ex")
-    Ilexir.HostApp.call(app, Ilexir.StandardErrorStub, :start_link, [])
+    Ilexir.HostApp.call(app, Code, :load_file, ["#{__DIR__}/quick_fix/item.ex"])
 
+    Ilexir.HostApp.load_hosted_file(app, "ilexir/linter/dummy.ex")
+    Ilexir.HostApp.load_hosted_file(app, "ilexir/linter/ast.ex")
+
+    Ilexir.HostApp.load_hosted_file(app, "ilexir/linter/compiler.ex")
+    Ilexir.HostApp.load_hosted_file(app, "ilexir/standard_error_stub.ex")
     bootstrap_credo(app)
+
+    [Supervisor.Spec.worker(Ilexir.StandardErrorStub,[[],[name: Ilexir.StandardErrorStub]])]
   end
 
   defp bootstrap_credo(%{mix_app?: true} = app) do
@@ -48,7 +53,7 @@ defmodule Ilexir.Linter do
 
     if Enum.any?(config[:deps], fn(dep)-> elem(dep, 0) == :credo end) do
       HostApp.call(app, Application, :ensure_all_started, [:credo])
-      HostApp.load_file(app, "#{@hosted_path}/linter/credo.ex")
+      HostApp.load_hosted_file(app, "ilexir/linter/credo.ex")
     end
   end
 
