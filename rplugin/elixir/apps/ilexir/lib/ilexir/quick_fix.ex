@@ -17,8 +17,8 @@ defmodule Ilexir.QuickFix do
     GenServer.call(__MODULE__, {:update_items, items, group})
   end
 
-  def clear_items(group \\ :default) do
-    GenServer.call(__MODULE__, {:clear_items, group})
+  def clear_items do
+    GenServer.call(__MODULE__, :clear_items)
   end
 
   def handle_call({:update_items, items, group}, _from, state) do
@@ -38,6 +38,13 @@ defmodule Ilexir.QuickFix do
         redraw_group(state.items)
         state
     end
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:clear_items, _from, state) do
+    state = %{state | items: %{}}
+    do_draw([])
+
     {:reply, :ok, state}
   end
 
