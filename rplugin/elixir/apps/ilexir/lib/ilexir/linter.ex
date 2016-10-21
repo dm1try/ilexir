@@ -17,11 +17,7 @@ defmodule Ilexir.Linter do
   def handle_call({:check, file, content, linter, app}, _from, state) do
     case HostApp.call(app, linter, :run, [file, content]) do
       fix_items when is_list(fix_items) ->
-        if Enum.any?(fix_items) do
-          QuickFix.update_items(fix_items)
-        else
-          QuickFix.clear_items()
-        end
+       QuickFix.update_items(fix_items, to_string(linter))
       {:error, error} ->
         Logger.error "Problem with running a linter(#{linter}): #{inspect error}"
     end

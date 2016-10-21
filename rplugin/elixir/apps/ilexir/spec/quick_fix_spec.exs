@@ -38,7 +38,8 @@ defmodule Ilexir.QuickFixSpec do
   it "fills the quickfix list and highlights errors" do
     expect(QuickFix.update_items([fix_item])).to eq(:ok)
 
-    expect_qf_list_is_filled()
+    expect_qf_list_size(1)
+    expect_qf_list_have_any?(fix_text)
     expect_error_line_is_highlighted()
   end
 
@@ -47,25 +48,39 @@ defmodule Ilexir.QuickFixSpec do
 
     expect(QuickFix.clear_items()).to eq(:ok)
 
-    expect_qf_list_is_empty()
+    expect_qf_list_size(0)
     expect_error_line_is_not_highlighted()
+  end
+
+  context "items from different groups" do
+    let :another_item, do: %{fix_item | text: "another fix"}
+    let :another_item2, do: %{fix_item | text: "another fix 2"}
+
+    it "updates only specific group" do
+      QuickFix.update_items([fix_item], :first_group)
+      QuickFix.update_items([another_item, another_item2], :second_group)
+
+      expect_qf_list_size(3)
+
+      QuickFix.update_items([], :second_group)
+
+      expect_qf_list_size(1)
+      expect_qf_list_have_any?(fix_text)
+    end
   end
 
   defp enable_underlined_highlighting do
     {:ok, _} = vim_command("hi Underlined cterm=underline")
   end
 
-  defp expect_qf_list_is_filled do
+  defp expect_qf_list_size(size) do
     {:ok, items} = vim_call_function("getqflist", [])
-    expect(length(items)).to eq(1)
-
-    item = hd(items)
-    expect(item["text"]).to eq(fix_text)
+    expect(length(items)).to eq(size)
   end
 
-  defp expect_qf_list_is_empty do
+  defp expect_qf_list_have_any?(text) do
     {:ok, items} = vim_call_function("getqflist", [])
-    expect(items).to eq([])
+    Enum.any?(items, &(&1["text"] == text))
   end
 
   defp expect_error_line_is_highlighted do

@@ -10,7 +10,7 @@ defmodule Ilexir.QuickFix do
   end
 
   def init(_args) do
-    {:ok, %{items: []}}
+    {:ok, %{items: %{}}}
   end
 
   def update_items(items, group \\ :default) do
@@ -21,12 +21,46 @@ defmodule Ilexir.QuickFix do
     GenServer.call(__MODULE__, {:clear_items, group})
   end
 
-  def handle_call({:update_items, items, _group}, _from, state) do
+  def handle_call({:update_items, items, group}, _from, state) do
+    state = put_in(state, [:items, group], items)
+    # TODO: run partial redraw if possible
+    # and make a deal with "duplicated" items in different groups
+    redraw_group(state.items)
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:clear_items, group}, _from, state) do
+    state = case pop_in(state, [:items, group]) do
+      {nil, state} ->
+        state
+      {_old, state} ->
+        redraw_group(state.items)
+        state
+    end
+    {:reply, :ok, state}
+  end
+
+  defp redraw_group(grouped_items) do
+    grouped_items
+    |> Enum.flat_map(&(elem(&1,1)))
+    |> do_draw
+  end
+
+  defp do_draw([] = _items) do
+    nvim_call_function("setqflist", [[],"r", "Ilexir"])
+
+    {:ok, active_buffer} = nvim_get_current_buf()
+    nvim_buf_clear_highlight(active_buffer, -1, 0, -1)
+
+    nvim_command("cclose")
+  end
+
+  defp do_draw(items) do
     case vim_get_current_buffer do
       {:ok, active_buffer} ->
 
         buffer_clear_highlight(active_buffer, -1, 0, -1)
-
         qf_items = items_to_qf_param(items)
         vim_call_function("setqflist", [qf_items,"r", "Ilexir"])
         qf_window_size = length(items)
@@ -34,19 +68,8 @@ defmodule Ilexir.QuickFix do
 
         highlight_items(items, active_buffer)
       {:error, error} ->
-        Logger.error("unable to retrive current buffer: #{inspect error}")
+        Logger.error("unable to retrieve current buffer: #{inspect error}")
     end
-
-    {:reply, :ok, state}
-  end
-
-  def handle_call({:clear_items, _group}, _from, state) do
-    vim_call_function("setqflist", [[],"r", "Ilexir"])
-    vim_command("cclose")
-
-    {:ok, active_buffer} = vim_get_current_buffer
-    buffer_clear_highlight(active_buffer, -1, 0, -1)
-    {:reply, :ok, state}
   end
 
   defp highlight_item(%Ilexir.QuickFix.Item{location: %{line: line, col_start: col_start, col_end: col_end}}, buffer, highlight_id) do
