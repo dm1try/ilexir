@@ -13,8 +13,14 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
   let :current_column_after_finding, do: current_column - String.length(base)
 
   before do
-    CodeServer.start_link
+    {:ok, pid} = CodeServer.start_link
+    {:shared, code_server_pid: pid}
   end
+
+  finally do
+    GenServer.stop(shared.code_server_pid)
+  end
+
   context "empty line" do
     let :line, do: "     "
     let :current_column, do: 3
