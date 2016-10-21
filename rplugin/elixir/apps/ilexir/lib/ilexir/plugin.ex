@@ -194,7 +194,8 @@ defmodule Ilexir.Plugin do
 
   defp start_app(path, command_params) do
     {args, _, _} = OptionParser.parse(command_params)
-
+    {:ok, current_dir} = nvim_call_function("getcwd", [])
+    path = Path.expand(path, current_dir)
     case AppManager.start_app(path, args ++ [callback: &start_callback/1]) do
       {:ok, app} ->
         ~s[Application "#{app.name}(#{app.env})" is loading...]
