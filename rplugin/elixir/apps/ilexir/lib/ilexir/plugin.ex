@@ -119,8 +119,8 @@ defmodule Ilexir.Plugin do
 
   # Linter interface
 
-  command ilexir_lint(linter_name) do
-    name = String.capitalize(linter_name)
+  command ilexir_lint(params) do
+    name = String.capitalize(Enum.at(params, 0))
     linter_mod = Module.concat(Linter, name)
     lint(linter_mod)
   end
@@ -128,6 +128,8 @@ defmodule Ilexir.Plugin do
   on_event :insert_leave, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :text_changed, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
   on_event :buf_write_post, [pattern: "*.{ex,exs}"], do: lint(Linter.Compiler)
+
+  # Autocomplete interface
 
   function ilexir_complete(find_start, base),
     pre_evaluate: %{
@@ -170,7 +172,7 @@ defmodule Ilexir.Plugin do
   defp expand_on_host(app, current_line, column_number, base, location) do
     complete_opts = case App.call(app, Ilexir.Compiler, :get_env, [location]) do
       nil ->
-        flash_echo "Current file is not compiled by Ilexir, use :IlexirCompile to extend completion results"
+        flash_echo "Results for current enviroment are missed(current file is not compiled by Ilexir)."
         []
       env ->
         [env: env]
@@ -187,7 +189,7 @@ defmodule Ilexir.Plugin do
   # TODO: check why FileType event does not triggered for openning the file directly:
   # $ nvim some_file.ex
   on_event :buf_enter, pattern: "*.{ex,exs}" do
-    vim_command "set omnifunc=IlexirComplete"
+    nvim_command "set omnifunc=IlexirComplete"
   end
 
   defp start_app(path, command_params) do
