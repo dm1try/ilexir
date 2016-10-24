@@ -1,6 +1,6 @@
 defmodule Ilexir.Compiler do
   @moduledoc """
-  Saves module env and bindings between compilations/evaluations.
+  Compiler.
   """
   alias Ilexir.Compiler.ModuleLocation
 
@@ -25,14 +25,6 @@ defmodule Ilexir.Compiler do
     |> Code.compile_quoted(file)
   end
 
-  def eval_string(string, module_name) do
-    GenServer.call(__MODULE__, {:eval_string, string, module_name})
-  end
-
-  def eval_string(string, file_name, line_number) do
-    GenServer.call(__MODULE__, {:eval_string, string, file_name, line_number})
-  end
-
   def get_env(param) do
     GenServer.call(__MODULE__, {:get_env, param})
   end
@@ -43,26 +35,6 @@ defmodule Ilexir.Compiler do
 
   def __after_compile__(env, _bytecode) do
     GenServer.call(__MODULE__, {:set_env, env})
-  end
-
-  def handle_call({:eval_string, string, module_name}, _from, state) do
-    env = get_env(state, module_name)
-    bindings = get_bindings(state, module_name)
-
-    {response, new_state} = do_eval(state, string, bindings, env, module_name)
-
-    {:reply, response, new_state}
-  end
-
-  def handle_call({:eval_string, string, file_name, line_number}, _from, state) do
-    module_name = ModuleLocation.find_module(state.locations[file_name], line_number)
-
-    env = get_env(state, module_name)
-    bindings = get_bindings(state, module_name)
-
-    {response, new_state} = do_eval(state, string, bindings, env, module_name)
-
-    {:reply, response, new_state}
   end
 
   def handle_call({:set_env, env}, _from, state) do
@@ -77,15 +49,6 @@ defmodule Ilexir.Compiler do
 
   def handle_call({:get_env, module}, _from, state) do
     {:reply, get_env(state, module), state}
-  end
-
-  def handle_call({:get_bindings, module}, _from, state) do
-    {:reply, get_bindings(state, module), state}
-  end
-
-  def handle_call({:set_bindings, module, bindings}, _from, state) do
-    state = update_bindings(state, module, bindings)
-    {:reply, :ok, state}
   end
 
   def handle_cast({:update_locations, file, ast}, state) do
@@ -106,28 +69,6 @@ defmodule Ilexir.Compiler do
 
   defp inject_after_compile_callback(block, _callback_ast), do: block
 
-  defp do_eval(state, _string, _bindings, nil = _env, module_name) do
-    {{:error, "#{module_name} must be compiled with Ilexir compiler before inline evaluation"}, state}
-  end
-
-  defp do_eval(state, string, bindings, env, module_name) do
-    try do
-      {result, bindings} = Code.eval_string(string, bindings, env)
-      new_state = update_bindings(state, module_name, bindings)
-      {{:ok, result}, new_state}
-    rescue
-      error in CompileError ->
-        case Regex.named_captures(~r/undefined function (?<var_name>\w+)\/./, error.description) do
-          %{"var_name" => var} ->
-            {{:undefined, var}, state}
-          _ ->
-            {{:error, error.description}, state}
-        end
-      any ->
-        {{:error, "#{inspect any}"}, state}
-    end
-  end
-
   defp get_env(state, module) do
     get_in(state, [:modules, "#{module}", :env])
   end
@@ -136,13 +77,5 @@ defmodule Ilexir.Compiler do
     module_data = get_in(state, [:modules, "#{env.module}"]) || %{env: nil, bindings: []}
     module_data = %{module_data | env: env}
     put_in(state, [:modules, "#{env.module}"], module_data)
-  end
-
-  defp get_bindings(state, module) do
-    get_in(state, [:modules, "#{module}", :bindings]) || []
-  end
-
-  defp update_bindings(state, module, bindings) do
-    update_in(state, [:modules, "#{module}", :bindings], &(&1 ++ bindings))
   end
 end
