@@ -1,28 +1,21 @@
 defmodule Ilexir.Compiler do
   @moduledoc """
-  Compiler.
+  Compiles files and saves their env values.
+  Notifies subscribers on ast processing/after compilation.
   """
-  alias Ilexir.Compiler.ModuleLocation
-
   use GenServer
 
   def start_link(args \\ [], opts \\ []) do
     GenServer.start_link(__MODULE__, args, opts ++ [name: __MODULE__])
   end
 
-  def init(_args) do
-    {:ok, %{modules: %{}, locations: %{}}}
+  def init(args) do
+    subscribers = Keyword.get(args, :subscribers, %{})
+    {:ok, %{modules: %{}, subscribers: subscribers}}
   end
 
   def compile_string(string, file \\ "nofile") do
-    after_compile_callback_ast = quote do @after_compile unquote(__MODULE__) end
-
-    ast = Code.string_to_quoted!(string)
-    GenServer.cast(__MODULE__, {:update_locations, file, ast})
-
-    ast
-    |> Macro.postwalk(&inject_after_compile_callback(&1, after_compile_callback_ast))
-    |> Code.compile_quoted(file)
+    GenServer.call(__MODULE__, {:compile_string, string, file})
   end
 
   def get_env(param) do
@@ -33,8 +26,8 @@ defmodule Ilexir.Compiler do
     GenServer.call(__MODULE__, {:set_env, env})
   end
 
-  def __after_compile__(env, _bytecode) do
-    GenServer.call(__MODULE__, {:set_env, env})
+  def __after_compile__(env, bytecode) do
+    GenServer.call(__MODULE__, {:after_compile, {env, bytecode}})
   end
 
   def handle_call({:set_env, env}, _from, state) do
@@ -42,18 +35,35 @@ defmodule Ilexir.Compiler do
     {:reply, :ok, state}
   end
 
-  def handle_call({:get_env, {file, line_number}}, _from, state) do
-    module = ModuleLocation.find_module(state.locations[file], line_number)
-    {:reply, get_env(state, module), state}
+  def handle_call({:after_compile, {env, _bytecode} = after_compile_data}, _from, %{subscribers: subscribers} = state) do
+    state = update_env(state, env.module, env)
+
+    Enum.each subscribers[:after_compile] || [], fn(subcriber)->
+      spawn_link fn-> send subcriber, {:after_compile, after_compile_data} end
+    end
+
+    {:reply, :ok, state}
   end
 
   def handle_call({:get_env, module}, _from, state) do
     {:reply, get_env(state, module), state}
   end
 
-  def handle_cast({:update_locations, file, ast}, state) do
-    tree = ModuleLocation.to_location_tree(ast)
-    state = put_in(state, [:locations, file], tree)
+  def handle_call({:compile_string, string, file}, from, %{subscribers: subscribers} = state) do
+    after_compile_callback_ast = quote do @after_compile unquote(__MODULE__) end
+
+    ast = Code.string_to_quoted!(string)
+
+    Enum.each subscribers[:on_ast_processing] || [], fn(subcriber)->
+      spawn_link fn-> send subcriber, {:on_ast_processing, {file, ast}} end
+    end
+
+    ast = Macro.postwalk(ast, &inject_after_compile_callback(&1, after_compile_callback_ast))
+
+    spawn_link fn->
+      GenServer.reply(from, Code.compile_quoted(ast, file))
+    end
+
     {:noreply, state}
   end
 
