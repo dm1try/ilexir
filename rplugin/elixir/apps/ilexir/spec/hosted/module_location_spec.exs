@@ -1,7 +1,7 @@
-defmodule Ilexir.Compiler.ModuleLocationSpec do
+defmodule Ilexir.ModuleLocationSpec do
   use ESpec
 
-  alias Ilexir.Compiler.ModuleLocation
+  alias Ilexir.ModuleLocation
 
   let :some_code_ast do
     """

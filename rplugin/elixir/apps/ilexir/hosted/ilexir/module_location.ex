@@ -1,8 +1,7 @@
-defmodule Ilexir.Compiler.ModuleLocation do
+defmodule Ilexir.ModuleLocation do
   @moduledoc """
   The code here smells not so good :)
   """
-
   def to_location_tree(ast) do
     root_node = {{nil, [0, nil],[]}, [{0,0}], []}
     {_, {tree, _, _}} = Macro.traverse(ast, root_node, &pre_traverse_callback/2, &post_traverse_callback/2)

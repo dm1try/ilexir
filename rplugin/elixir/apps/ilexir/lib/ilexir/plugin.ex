@@ -169,14 +169,16 @@ defmodule Ilexir.Plugin do
     end
   end
 
-  defp expand_on_host(app, current_line, column_number, base, location) do
-    complete_opts = case App.call(app, Ilexir.Compiler, :get_env, [location]) do
-      nil ->
-        flash_echo "Results for current enviroment are missed(current file is not compiled by Ilexir)."
-        []
-      env ->
+  defp expand_on_host(app, current_line, column_number, base, {filename, line_number}) do
+    complete_opts =
+      with module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line_number]),
+      env when is_map(env) <- App.call(app, Ilexir.Compiler, :get_env, [module]) do
         [env: env]
-    end
+      else
+        _ ->
+          flash_echo "Results for current enviroment are missed(seems like the current file is not compiled by Ilexir)."
+          []
+      end
 
     items = App.call(app, Autocomplete, :expand, [current_line, column_number, base, complete_opts])
 
@@ -234,11 +236,21 @@ defmodule Ilexir.Plugin do
   end
 
   defp evaluate_with_undefined(app, content, filename, line) do
-    case App.call(app, Ilexir.Compiler, :eval_string, [content, filename, line]) do
+    eval_opts =
+      with module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line]),
+      env when is_map(env) <- App.call(app, Ilexir.Compiler, :get_env, [module]) do
+        [env: env]
+      else
+        _ ->
+          flash_echo "Current enviroment is missed(seems like the current file is not compiled by Ilexir)."
+          []
+      end
+
+    case App.call(app, Ilexir.Evaluator, :eval_string, [content, eval_opts]) do
       {:ok, result} -> echo_i(result)
       {:undefined, var} ->
         {:ok, result} = nvim_call_function("input", ["Please provide '#{var}' to continue: "])
-        App.call(app, Ilexir.Compiler, :eval_string, ["#{var} = #{result}", filename, line])
+        App.call(app, Ilexir.Evaluator, :eval_string, ["#{var} = #{result}", eval_opts])
         evaluate_with_undefined(app, content, filename, line)
       {:error, error} -> echo_i(error)
     end
