@@ -195,7 +195,7 @@ defmodule Ilexir.Autocomplete.OmniFunc do
   end
 
   defp short_desc(nil), do: "No description found."
-  defp short_desc(false), do: "DEPRECATED."
+  defp short_desc(false), do: "No description provided."
   defp short_desc(desc), do: desc |> String.split("\n") |> List.first
 
   defp func_data_from_docs([], _), do: nil
