@@ -5,9 +5,7 @@ defmodule Ilexir.Linter do
   alias  Ilexir.{QuickFix, HostApp}
 
   def start_link(args \\ [], _opts \\ []) do
-    {:ok, pid} = result = GenServer.start_link(__MODULE__, args, name: __MODULE__)
-    Ilexir.HostAppManager.subscribe_on_app_load(pid)
-    result
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def check(file, content, linter, app) do

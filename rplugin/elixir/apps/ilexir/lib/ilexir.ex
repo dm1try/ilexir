@@ -5,7 +5,7 @@ defmodule Ilexir do
     import Supervisor.Spec
 
     children = [
-      worker(Ilexir.HostAppManager, [], []),
+      worker(Ilexir.HostAppManager, [[subscribers: [Ilexir.Linter]]], []),
       worker(Ilexir.QuickFix, [], []),
       worker(Ilexir.Linter, [], [])
     ]

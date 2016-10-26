@@ -16,17 +16,17 @@ defmodule Ilexir.HostAppManager do
   @fallback_failure_count 30
   @fallback_timeout 400
 
-  def start_link(_args \\ [], _opts \\ []) do
-    GenServer.start_link(__MODULE__, [], [name: __MODULE__])
+  def start_link(args \\ [], _opts \\ []) do
+    GenServer.start_link(__MODULE__, args, [name: __MODULE__])
   end
 
-  def init(_args) do
+  def init(args) do
     random_string = "#{Enum.shuffle(97..112)}"
     remote_name = :"ilexir_host_#{random_string}"
 
     Node.start(remote_name, :shortnames)
-
-    {:ok, %{remote_name: remote_name, subscribers: [], apps: %{}, last_app_id: 0}}
+    subscribers = Keyword.get(args, :subscribers, [])
+    {:ok, %{remote_name: remote_name, subscribers: subscribers, apps: %{}, last_app_id: 0}}
   end
 
   def start_app(path, args \\ []) do
