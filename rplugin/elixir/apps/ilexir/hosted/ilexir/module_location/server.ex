@@ -9,7 +9,7 @@ defmodule Ilexir.ModuleLocation.Server do
     GenServer.start_link(__MODULE__, args, opts ++ [name: name])
   end
 
-  def init(args \\ []) do
+  def init(_args) do
     {:ok, %{locations: %{}}}
   end
 
