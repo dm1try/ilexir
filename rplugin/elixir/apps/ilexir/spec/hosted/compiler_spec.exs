@@ -111,4 +111,14 @@ defmodule Ilexir.CompilerSpec do
       end
     end
   end
+
+  context "compile errors" do
+    before do: Compiler.start_link
+    finally do: GenServer.stop(Compiler)
+
+    it "returns an error" do
+      {:error, error} = Compiler.compile_string("undefined + 2")
+      expect(error).to be_struct(CompileError)
+    end
+  end
 end

@@ -19,8 +19,6 @@ defmodule Ilexir.StandardErrorStub do
       unregister()
       if old_ansi_enabled, do: :application.set_env(:elixir, :ansi_enabled, true)
     end
-
-     warnings()
   end
 
   def start_link(_args \\ [], _opts \\ []) do

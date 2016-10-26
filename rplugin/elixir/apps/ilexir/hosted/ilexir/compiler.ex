@@ -61,7 +61,11 @@ defmodule Ilexir.Compiler do
     ast = Macro.postwalk(ast, &inject_after_compile_callback(&1, after_compile_callback_ast))
 
     spawn_link fn->
-      GenServer.reply(from, Code.compile_quoted(ast, file))
+      try do
+        GenServer.reply(from, Code.compile_quoted(ast, file))
+      rescue
+        error -> GenServer.reply(from, {:error, error})
+      end
     end
 
     {:noreply, state}
