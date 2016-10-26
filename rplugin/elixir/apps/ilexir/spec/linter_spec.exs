@@ -21,7 +21,9 @@ defmodule Ilexir.LinterSpec do
                                runner_id: runner_id,
                                callback: fn(app)-> send ESpec.Runner, {:started, app} end)
 
-      app = receive do {:started, app} -> app end
+      app = receive do {:started, app} -> app
+      after 5000 -> raise "mix app is not running"
+      end
 
       {:shared, app: app}
     end

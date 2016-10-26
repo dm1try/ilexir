@@ -69,7 +69,8 @@ defmodule Ilexir.HostAppManagerSpec do
 
     finally do
       Manager.stop_app(shared.app)
-      receive do {:ok, %{status: :down}} -> :ok end
+      receive do {:ok, %{status: :down}} -> :ok
+      after 5000 -> raise "problem with stopping an app" end
 
       File.rm_rf!(shared.app_path)
       GenServer.stop(shared.manager)
@@ -93,7 +94,8 @@ defmodule Ilexir.HostAppManagerSpec do
   defp bootstrap_running_app(app_path, opts) do
     opts = opts ++ [callback: fn(app)-> send ESpec.Runner, {:ok, app} end]
     {:ok, %{status: :loading}} = Manager.start_app(app_path, opts)
-    receive do {:ok, app} -> app end
+    receive do {:ok, app} -> app
+    after 5000 -> raise "problem with bootstrapping an app" end
   end
 end
 
