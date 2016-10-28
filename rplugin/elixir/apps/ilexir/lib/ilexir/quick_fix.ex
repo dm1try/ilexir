@@ -55,12 +55,12 @@ defmodule Ilexir.QuickFix do
   end
 
   defp do_draw([] = _items) do
-    nvim_call_function("setqflist", [[],"r", "Ilexir"])
+    nvim_call_function("setloclist", [0, [],"r", "Ilexir"])
 
     {:ok, active_buffer} = nvim_get_current_buf()
     nvim_buf_clear_highlight(active_buffer, -1, 0, -1)
 
-    nvim_command("cclose")
+    nvim_command("lclose")
   end
 
   defp do_draw(items) do
@@ -69,9 +69,9 @@ defmodule Ilexir.QuickFix do
 
         buffer_clear_highlight(active_buffer, -1, 0, -1)
         qf_items = items_to_qf_param(items)
-        vim_call_function("setqflist", [qf_items,"r", "Ilexir"])
+        vim_call_function("setloclist", [0, qf_items,"r", "Ilexir"])
         qf_window_size = length(items)
-        vim_command("bo copen #{qf_window_size} | wincmd p")
+        vim_command("bel lopen #{qf_window_size} | wincmd p")
 
         highlight_items(items, active_buffer)
       {:error, error} ->

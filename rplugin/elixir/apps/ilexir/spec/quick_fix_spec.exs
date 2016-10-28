@@ -74,12 +74,12 @@ defmodule Ilexir.QuickFixSpec do
   end
 
   defp expect_qf_list_size(size) do
-    {:ok, items} = vim_call_function("getqflist", [])
+    {:ok, items} = vim_call_function("getloclist", [0])
     expect(length(items)).to eq(size)
   end
 
   defp expect_qf_list_have_any?(text) do
-    {:ok, items} = vim_call_function("getqflist", [])
+    {:ok, items} = vim_call_function("getloclist", [0])
     Enum.any?(items, &(&1["text"] == text))
   end
 
