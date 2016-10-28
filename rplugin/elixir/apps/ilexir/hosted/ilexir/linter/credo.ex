@@ -1,9 +1,11 @@
 defmodule Ilexir.Linter.Credo do
+  @moduledoc "Wrapper for credo linting"
+  alias Credo.{SourceFile, Check, Config}
   alias Ilexir.QuickFix.Item
 
   def run(file, content) do
-    credo_source = Credo.SourceFile.parse(content, file)
-    %{issues: credo_issues} = Credo.Check.Runner.run(credo_source, Credo.Config.read_or_default([]))
+    credo_source = SourceFile.parse(content, file)
+    %{issues: credo_issues} = Check.Runner.run(credo_source, Config.read_or_default([]))
     to_fix_items(credo_issues)
   end
 
@@ -11,12 +13,16 @@ defmodule Ilexir.Linter.Credo do
     Enum.map(credo_issues, &to_fix_item/1)
   end
 
-  defp to_fix_item(%Credo.Issue{message: message, line_no: line, filename: filename}) do
-    %Item{file: filename, text: message, type: :warning, location: location(line)}
+  defp to_fix_item(%Credo.Issue{message: message, line_no: line, column: column, filename: filename}) do
+    %Item{file: filename, text: message, type: :warning, location: location({line, column})}
   end
 
-  defp location(line) when is_integer(line) do
+  defp location({line, nil}) do
     %Item.Location{line: line}
+  end
+
+  defp location({line, column}) do
+    %Item.Location{line: line, col_start: column - 1}
   end
 
   defp location({line, col_start, col_end}) do
