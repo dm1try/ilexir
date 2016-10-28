@@ -1,4 +1,8 @@
 defmodule Ilexir.Plugin do
+  @moduledoc """
+  The "controller" module which contains all available Ilexir commands/functions
+  that you can use from neovim.
+  """
   use NVim.Plugin
   import NVim.Session
   require Logger
@@ -8,7 +12,12 @@ defmodule Ilexir.Plugin do
   alias Ilexir.Linter
   alias Ilexir.Autocomplete.OmniFunc, as: Autocomplete
 
+  def init(_args) do
+    {:ok, %{timer_ref: nil}}
+  end
+
   # Host manager interface
+
   command ilexir_start_app(params),
     complete: :file
   do
@@ -125,9 +134,28 @@ defmodule Ilexir.Plugin do
     lint(linter_mod)
   end
 
-  on_event :insert_leave, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
-  on_event :text_changed, [pattern: "*.{ex,exs}"], do: lint(Linter.Ast)
-  on_event :buf_write_post, [pattern: "*.{ex,exs}"], do: lint(Linter.Compiler)
+  on_event :text_changed, [pattern: "*.{ex,exs}"] do
+    state = %{state | timer_ref: delayed_lint(state.timer_ref)}
+  end
+
+  on_event :insert_leave, [pattern: "*.{ex,exs}"] do
+    state = %{state | timer_ref: delayed_lint(state.timer_ref)}
+  end
+
+  on_event :buf_write_post, [pattern: "*.{ex,exs}"] do
+    state = %{state | timer_ref: delayed_lint(state.timer_ref)}
+  end
+
+  on_event :cursor_hold_i, [pattern: "*.{ex,exs}"] do
+    state = %{state | timer_ref: delayed_lint(state.timer_ref)}
+  end
+
+  @delay_time 300 # ms
+  defp delayed_lint(timer_ref) do
+    :timer.cancel(timer_ref)
+    {:ok, timer_ref} = :timer.apply_after(@delay_time, __MODULE__, :lint, [[allow_compile: autocompile_enabled?]])
+    timer_ref
+  end
 
   # Autocomplete interface
 
@@ -221,7 +249,7 @@ defmodule Ilexir.Plugin do
     echo message
   end
 
-  defp lint(linter_mod) do
+  def lint(linter_mod) do
     with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
          {:ok, filename} <- nvim_buf_get_name(buffer),
@@ -233,6 +261,10 @@ defmodule Ilexir.Plugin do
       error ->
         Logger.warn("Unable to lint the buffer: #{inspect error}")
     end
+  end
+
+  defp autocompile_enabled? do
+    nvim_get_var("ilexir_autocompile") != {:ok, 0}
   end
 
   defp evaluate_with_undefined(app, content, filename, line) do
