@@ -205,11 +205,29 @@ defmodule Ilexir.HostAppManager do
       end
     end)
 
+    bootsrap_test_env(app)
+
     case App.block_call(app, Supervisor, :start_link, [subscriber_workers ++ core_workers, [strategy: :one_for_one]]) do
       {:ok, _supervisor} -> :ok
       error -> Logger.error "Problem with starting hosted supervision tree: #{inspect error}"
     end
   end
+
+  defp bootsrap_test_env(%{env: "test", mix_app?: true, path: path} = app) do
+    # too naive atm
+    # TODO: incapsulate the logic in separate module
+    with true <- File.dir?("#{path}/test"),
+         :ok <- App.call(app, Application, :load, [:ex_unit]) do
+      App.call(app, ExUnit, :start, [])
+    end
+
+    with true <- File.dir?("#{path}/spec"),
+         :ok <- App.call(app, Application, :load, [:espec]) do
+      App.call(app, ESpec, :start, [])
+    end
+  end
+
+  defp bootsrap_test_env(_app), do: nil
 
   defp bootstrap_core(app) do
     import Supervisor.Spec
