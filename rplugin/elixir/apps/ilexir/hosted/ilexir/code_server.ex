@@ -61,6 +61,11 @@ defmodule Ilexir.CodeServer do
     {:reply, :ok, new_state}
   end
 
+  def handle_info({:after_compile, {env, obj_code}}, state) do
+    new_state = put_in(state, [:modules, env.module], {env.module, obj_code, env.file})
+    {:noreply, new_state}
+  end
+
   defp lookup(cache_key, missing_callback) do
     case :ets.lookup(@cache_name, cache_key) do
       [{^cache_key, result}] -> result

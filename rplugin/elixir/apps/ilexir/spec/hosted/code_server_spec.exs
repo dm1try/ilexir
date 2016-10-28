@@ -50,6 +50,16 @@ defmodule Ilexir.CodeServerSpec do
       docs = CodeServer.get_elixir_docs(Hello, :docs)
       expect_elixir_docs_returned(docs)
     end
+
+    it "updates module info trough compile callback" do
+      {:module, mod_name, obj_code, env} = defmodule Dynamic do
+        @moduledoc "I'm here"
+        __ENV__
+      end
+
+      send CodeServer, {:after_compile, {env, obj_code}}
+      expect(CodeServer.get_modules()).to have(mod_name)
+    end
   end
 
   defp expect_elixir_docs_returned(docs) do

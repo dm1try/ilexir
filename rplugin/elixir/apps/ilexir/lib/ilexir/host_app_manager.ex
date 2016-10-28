@@ -243,7 +243,8 @@ defmodule Ilexir.HostAppManager do
              worker(Ilexir.CodeServer, [[],[]]),
              worker(Ilexir.ModuleLocation.Server, [[],[]]),
              worker(Ilexir.Compiler, [[subscribers: %{
-                    on_ast_processing: [Ilexir.ModuleLocation.Server]
+                    on_ast_processing: [Ilexir.ModuleLocation.Server],
+                    after_compile: [Ilexir.CodeServer]
                   }],[]]),
                 worker(Ilexir.Evaluator, [[],[]]),
               ]
