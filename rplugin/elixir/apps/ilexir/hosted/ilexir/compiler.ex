@@ -52,7 +52,11 @@ defmodule Ilexir.Compiler do
   def handle_call({:compile_string, string, file}, from, %{subscribers: subscribers} = state) do
     after_compile_callback_ast = quote do @after_compile unquote(__MODULE__) end
 
-    ast = Code.string_to_quoted!(string)
+    ast = try do
+      Code.string_to_quoted!(string)
+    rescue
+      error -> GenServer.reply(from, {:error, error})
+    end
 
     Enum.each subscribers[:on_ast_processing] || [], fn(subcriber)->
       spawn_link fn-> send subcriber, {:on_ast_processing, {file, ast}} end
