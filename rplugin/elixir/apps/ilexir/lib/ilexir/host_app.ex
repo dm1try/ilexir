@@ -38,6 +38,22 @@ defmodule Ilexir.HostApp do
     :"#{"#{app_name}_#{env}"}@#{hostname}"
   end
 
+  @test_dirs ["spec", "test"]
+
+  @doc "looks up a suitable app for provided path"
+  def lookup(file_path, apps) do
+    Enum.find apps, fn(%{env: env, path: path})->
+      if String.contains?(file_path, path) do
+        relative = Path.relative_to(file_path, path)
+        test_dir? = Enum.any? @test_dirs, fn(test_dir)->
+          String.starts_with?(relative, test_dir)
+        end
+
+        if test_dir?, do: env == "test", else: env != "test"
+      end
+    end
+  end
+
   defp exec_path(path, args, mix_app?, remote_name) do
     mix_env = if mix_app?, do: "MIX_ENV=#{args[:env]}", else: ""
     exec_line = "cd #{path} && #{mix_env} elixir --no-halt --sname #{remote_name}"

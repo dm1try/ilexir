@@ -47,4 +47,35 @@ defmodule Ilexir.HostAppSpec do
       end
     end
   end
+
+  describe ".lookup" do
+    let :apps, do: []
+
+    it "returns nil if no running apps" do
+      app = HostApp.lookup("some_file.ex", apps)
+      expect(app).to eq(nil)
+    end
+
+    context "app path includes file for looking up" do
+      let :app_path, do: Path.expand("spec/fixtures/dummy_mix_app")
+      let :file_path, do: "#{app_path}/dummy_mix_app.ex"
+      let :app, do: HostApp.build(app_path)
+
+      it "returns app" do
+        founded_app = HostApp.lookup(file_path, [app])
+        expect(founded_app).to eq(app)
+      end
+
+      context "file path is inside test directory" do
+        let :file_path, do: "#{app_path}/spec/some_file_spec.exs"
+        let :app_with_test_env, do: HostApp.build(app_path, env: "test")
+
+        it "returns only app with test env" do
+          expect(HostApp.lookup(file_path, [app])).to eq(nil)
+          expect(HostApp.lookup(file_path, [app_with_test_env])).to eq(app_with_test_env)
+          expect(HostApp.lookup(file_path, [app, app_with_test_env])).to eq(app_with_test_env)
+        end
+      end
+    end
+  end
 end

@@ -50,8 +50,8 @@ defmodule Ilexir.HostAppManager do
   end
 
   def handle_call({:lookup, file_path}, _from, state) do
-    result = case Enum.find(state.apps, fn({_, app})-> app.status == :running && String.contains?(file_path, app.path) end) do
-      {_id, app} -> {:ok, app}
+    result = case App.lookup(file_path, Map.values(state.apps)) do
+      %{status: :running} = app -> {:ok, app}
       _ -> {:error, :no_running_apps}
     end
 
