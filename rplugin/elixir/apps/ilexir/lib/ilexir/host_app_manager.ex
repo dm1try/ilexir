@@ -13,8 +13,8 @@ defmodule Ilexir.HostAppManager do
 
   require Logger
 
-  @fallback_failure_count 30
-  @fallback_timeout 400
+  @fallback_failure_count 15
+  @fallback_timeout 300
 
   def start_link(args \\ [], _opts \\ []) do
     GenServer.start_link(__MODULE__, args, [name: __MODULE__])
@@ -76,7 +76,7 @@ defmodule Ilexir.HostAppManager do
 
       app = case @runner.start_app(app, @default_runner_opts ++ args) do
         {:ok, app} ->
-          :timer.send_after @fallback_timeout, {:check_loading_status, app_id, @fallback_failure_count}
+          :timer.send_after @fallback_timeout, {:check_node_status, app_id, @fallback_failure_count}
           %{app | status: :loading}
         {:error, app} ->
           %{app | status: :failed_to_run}
@@ -117,19 +117,21 @@ defmodule Ilexir.HostAppManager do
     {:noreply, state}
   end
 
-  def handle_info({:check_loading_status, app_id, failure_count}, state) do
+  def handle_info({:check_node_status, app_id, failure_count}, state) do
     state = case get_in(state, [:apps, app_id]) do
       %{status: :loading} = app ->
-        if started?(app) do
+        if node_running?(app) do
           Node.monitor(app.remote_name, true)
-          bootstrap_host(app, state.subscribers)
 
-          app = %{app | status: :running}
+          app = %{app | status: :waiting_for_start}
           notify_caller(app)
+
+          :timer.send_after @fallback_timeout, {:check_starting_status, app_id}
+
           put_in(state, [:apps, app_id], app)
         else
           if failure_count > 0 do
-            :timer.send_after @fallback_timeout, {:check_loading_status, app_id, failure_count - 1}
+            :timer.send_after @fallback_timeout, {:check_node_status, app_id, failure_count - 1}
             state
           else
             app = %{app | status: :timeout}
@@ -137,6 +139,26 @@ defmodule Ilexir.HostAppManager do
             {_, state} = pop_in(state, [:apps, app_id])
             state
           end
+        end
+      _ ->
+        state
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:check_starting_status, app_id}, state) do
+    state = case get_in(state, [:apps, app_id]) do
+      %{status: :waiting_for_start} = app ->
+        if started?(app) do
+          bootstrap_host(app, state.subscribers)
+
+          app = %{app | status: :running}
+          notify_caller(app)
+          put_in(state, [:apps, app_id], app)
+        else
+          :timer.send_after @fallback_timeout, {:check_starting_status, app_id}
+          state
         end
       _ ->
         state
@@ -170,11 +192,11 @@ defmodule Ilexir.HostAppManager do
   defp notify_caller(_app), do: nil
 
   defp started?(%{mix_app?: false} = app) do
-    node_running?(app) && code_server_running?(app)
+    code_server_running?(app)
   end
 
   defp started?(%{mix_app?: true} = app) do
-    node_running?(app) && app_loaded?(app)
+    app_loaded?(app)
   end
 
   defp code_server_running?(app) do

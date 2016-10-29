@@ -94,7 +94,7 @@ defmodule Ilexir.HostAppManagerSpec do
   defp bootstrap_running_app(app_path, opts) do
     opts = opts ++ [callback: fn(app)-> send ESpec.Runner, {:ok, app} end]
     {:ok, %{status: :loading}} = Manager.start_app(app_path, opts)
-    receive do {:ok, app} -> app
+    receive do {:ok, %{status: :running} = app} -> app
     after 5000 -> raise "problem with bootstrapping an app" end
   end
 end
