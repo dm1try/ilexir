@@ -91,6 +91,7 @@ defmodule Ilexir.Plugin do
       _ -> -1
     end
   end
+
   # Compiler interface
 
   command ilexir_compile do
@@ -112,6 +113,8 @@ defmodule Ilexir.Plugin do
     end
   end
 
+  # Evaluator
+
   command ilexir_eval, range: true do
     with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, lines} <- nvim_buf_get_lines(buffer, range_start - 1, range_end, false),
@@ -123,6 +126,21 @@ defmodule Ilexir.Plugin do
     else
       error ->
         warning_with_echo("Unable to evaluate lines: #{inspect error}")
+    end
+  end
+
+  command ilexir_eval_clear_bindings do
+    with {:ok, buffer} <- vim_get_current_buffer,
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename) do
+
+       case App.call(app, Ilexir.Evaluator, :set_bindings, [[]]) do
+         [] -> echo "Cleared."
+         _ -> echo "Something was going wrong."
+       end
+    else
+      error ->
+        warning_with_echo("Unable to clear bindings: #{inspect error}")
     end
   end
 
