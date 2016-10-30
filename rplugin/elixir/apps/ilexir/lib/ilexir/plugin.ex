@@ -252,19 +252,17 @@ defmodule Ilexir.Plugin do
     end |> echo
   end
 
-  def start_callback(%{status: status} = app) do
-    message = case status do
-      :running ->
-        ~s[Application "#{app.name}(#{app.env})" ready!]
-      :timeout ->
-        ~s[Application "#{app.name}(#{app.env})" unable to start!]
-      :down ->
-        ~s[Application "#{app.name}(#{app.env})" was shut down!]
-      _ ->
-        ~s[Application "#{app.name}(#{app.env})" changed status to #{status}!]
+  def start_callback(%{status: status, name: name, env: env} = _app) do
+    prefix = ~s[Application "#{name}(#{env})" ]
+
+    postfix = case status do
+      :running -> "ready!"
+      :timeout -> "unable to start!"
+      :down -> "was shut down!"
+      _ -> "changed status to #{status}!"
     end
 
-    echo message
+    echo (prefix <> postfix)
   end
 
   def lint(linter_mod) do
