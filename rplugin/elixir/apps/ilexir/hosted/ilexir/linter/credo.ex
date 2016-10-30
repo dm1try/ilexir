@@ -21,11 +21,11 @@ defmodule Ilexir.Linter.Credo do
     %Item.Location{line: line}
   end
 
-  defp location({line, column}) do
+  defp location({line, column}) when is_number(column) do
     %Item.Location{line: line, col_start: column - 1}
   end
 
-  defp location({line, col_start, col_end}) do
+  defp location({line, col_start, col_end}) when is_number(col_start) and is_number(col_end) do
     %Item.Location{line: line, col_start: col_start, col_end: col_end}
   end
 
