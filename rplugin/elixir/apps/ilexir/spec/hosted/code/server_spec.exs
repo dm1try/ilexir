@@ -1,6 +1,6 @@
-defmodule Ilexir.CodeServerSpec do
+defmodule Ilexir.Code.ServerSpec do
   use ESpec
-  alias Ilexir.CodeServer
+  alias Ilexir.Code.Server, as: CodeServer
 
   before do
     {:ok, pid} = CodeServer.start_link
@@ -22,12 +22,14 @@ defmodule Ilexir.CodeServerSpec do
     expect_elixir_docs_returned(docs)
   end
 
-  it "returns all available modules" do
-    modules = CodeServer.get_modules()
+  context "all modules succesfully returned", async: false do
+    before do
+      allow(Ilexir.Code).to accept(:all_modules, fn-> [Kernel, :timer, Atom, Enum] end)
+    end
 
-    expect(modules).to have(Kernel)
-    expect(modules).to have(:erlang)
-    expect(modules).to have(__MODULE__)
+    it "returns modules sorted by name desc" do
+      expect(CodeServer.get_modules).to eq([:timer, Kernel, Enum, Atom])
+    end
   end
 
   context "dynamically created module" do

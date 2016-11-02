@@ -257,16 +257,17 @@ defmodule Ilexir.HostAppManager do
     with [_loaded] <- App.load_hosted_file(app, "ilexir/module_location.ex"),
          [_loaded] <- App.load_hosted_file(app, "ilexir/module_location/server.ex"),
          [_loaded] <- App.load_hosted_file(app, "ilexir/compiler.ex"),
-         [_loaded|_] <- App.load_hosted_file(app, "ilexir/code_server.ex"),
+         [_loaded|_] <- App.load_hosted_file(app, "ilexir/code.ex"),
+         [_loaded|_] <- App.load_hosted_file(app, "ilexir/code/server.ex"),
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/autocomplete.ex"),
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/evaluator.ex") do
 
            specs = [
-             worker(Ilexir.CodeServer, [[],[]]),
+             worker(Ilexir.Code.Server, [[],[]]),
              worker(Ilexir.ModuleLocation.Server, [[],[]]),
              worker(Ilexir.Compiler, [[subscribers: %{
                     on_ast_processing: [Ilexir.ModuleLocation.Server],
-                    after_compile: [Ilexir.CodeServer]
+                    after_compile: [Ilexir.Code.Server]
                   }],[]]),
                 worker(Ilexir.Evaluator, [[],[]]),
               ]

@@ -1,7 +1,7 @@
 defmodule Ilexir.Autocomplete.OmniFuncSpec do
   use ESpec
 
-  alias Ilexir.CodeServer
+  alias Ilexir.Code.Server, as: CodeServer
   alias Ilexir.Autocomplete.OmniFunc, as: Autocomplete
 
   import Ilexir.Test.Autocomplete.Assertions

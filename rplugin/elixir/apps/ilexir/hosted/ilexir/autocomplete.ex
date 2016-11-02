@@ -4,7 +4,7 @@ defmodule Ilexir.Autocomplete.OmniFunc do
 
   See neovim help for more info(`h omnifunc` and `h complete-functions`)
   """
-  alias Ilexir.CodeServer
+  alias Ilexir.Code.Server, as: CodeServer
 
   defmodule CompletedItem do
     defstruct [:text, :abbr, :type, :short_desc]

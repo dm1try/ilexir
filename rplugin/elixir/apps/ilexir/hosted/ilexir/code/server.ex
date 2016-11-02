@@ -1,7 +1,8 @@
-defmodule Ilexir.CodeServer do
+defmodule Ilexir.Code.Server do
   @moduledoc """
   Wrapes elixir/erlang sources and returns meta information about code.
   """
+  alias Ilexir.Code
 
   use GenServer
   @cache_name :code_server_cache
@@ -29,7 +30,7 @@ defmodule Ilexir.CodeServer do
 
   def handle_call(:get_modules, _from, state) do
     all_modules = lookup :all_modules, fn->
-      all_modules()
+      Code.all_modules() |> Enum.sort(&(&1 > &2))
     end
 
     live_modules = Map.keys(state.modules)
@@ -38,16 +39,15 @@ defmodule Ilexir.CodeServer do
   end
 
   def handle_call({:get_elixir_docs, module, type}, _from, state) do
-    mod = Enum.find_value state.modules, fn({k, v}) ->
-      module == k && v
+    live_mod_code = Enum.find_value state.modules, fn({k, v}) ->
+      module == k && elem(v, 1)
     end
 
-    docs = if mod do
-      code = elem(mod, 1)
-      do_get_docs(code, type)
+    docs = if live_mod_code do
+      Code.get_elixir_docs(live_mod_code, type)
     else
       all_docs = lookup {:elixir_docs, module}, fn->
-        Code.get_docs(module, :all)
+        Code.get_elixir_docs(module, :all)
       end
 
       all_docs && all_docs[type]
@@ -75,44 +75,4 @@ defmodule Ilexir.CodeServer do
         result
     end
   end
-
-  defp all_modules do
-    modules = Enum.map(:code.all_loaded(), &(elem(&1, 0)))
-    Enum.sort(modules ++ get_modules_from_applications(), &(&1 > &2))
-  end
-
-  defp get_modules_from_applications do
-    for [app] <- loaded_applications(),
-        {:ok, modules} = :application.get_key(app, :modules),
-        module <- modules do module end
-  end
-
-  # Extracted from here https://github.com/elixir-lang/elixir/blob/64ee036509c34e097017e89fc0af3818110043d3/lib/iex/lib/iex/autocomplete.ex#L236
-  # See the related comment for more info.
-  defp loaded_applications do
-    :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
-  end
-
-
-  # see https://github.com/elixir-lang/elixir/blob/c2fd08e20d88ce7c42e9669dbfc2907ae5a5ae97/lib/elixir/lib/code.ex#L630
-  @docs_chunk 'ExDc'
-
-  defp do_get_docs(obj_code, kind) do
-    case :beam_lib.chunks(obj_code, [@docs_chunk]) do
-      {:ok, {_module, [{@docs_chunk, bin}]}} ->
-        lookup_docs(:erlang.binary_to_term(bin), kind)
-
-      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} -> nil
-    end
-  end
-
-  defp lookup_docs({:elixir_docs_v1, docs}, kind),
-    do: do_lookup_docs(docs, kind)
-
-  # unsupported chunk version
-  defp lookup_docs(_, _), do: nil
-
-  defp do_lookup_docs(docs, :all), do: docs
-  defp do_lookup_docs(docs, kind),
-    do: Keyword.get(docs, kind)
 end
