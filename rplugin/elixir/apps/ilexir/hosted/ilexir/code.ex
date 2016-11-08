@@ -16,6 +16,68 @@ defmodule Ilexir.Code do
     modules ++ get_modules_from_applications()
   end
 
+  @doc "Returns object code"
+  def get_object_code(module) do
+    case :code.get_object_code(module) do
+      {_, code, _} -> code
+      :error -> nil
+    end
+  end
+
+  defmodule Info do
+    @moduledoc false
+
+    def compile_info(module) when is_atom(module) do
+      if :code.is_loaded(module) do
+        module.module_info(:compile)
+      else
+        with file when is_list(file) <- :code.which(module),
+        {:ok, {^module, [compile_info: compile_info]}} <- :beam_lib.chunks(file, [:compile_info]) do
+          compile_info
+        else _ -> []
+        end
+      end
+    end
+
+    def compile_info(_module), do: []
+  end
+
+  @doc "Returns source path"
+  def get_source_path(module) when is_atom(module) do
+    with compile_info when is_list(compile_info) <- Info.compile_info(module),
+         source when is_list(source) <- Keyword.get(compile_info, :source) do
+      to_string(source)
+    end
+  end
+
+  def find_source_line({:module, module}, obj_code) when is_atom(module) do
+    abstract_code = get_abstract_code(obj_code)
+
+    Enum.find_value abstract_code,
+      &(match?({:attribute, _, :module, ^module}, &1) && elem(&1, 1))
+  end
+
+  def find_source_line({:function, func_name}, obj_code) do
+    abstract_code = get_abstract_code(obj_code)
+
+    Enum.find_value abstract_code,
+      &(match?({:function, _, ^func_name, _, _}, &1) && elem(&1, 1))
+  end
+
+  def find_source_line({:function, func_name, arity}, obj_code) do
+    abstract_code = get_abstract_code(obj_code)
+
+    Enum.find_value abstract_code,
+      &(match?({:function, _, ^func_name, ^arity, _}, &1) && elem(&1, 1))
+  end
+
+  defp get_abstract_code(obj_code) do
+    case :beam_lib.chunks(obj_code, [:abstract_code]) do
+      {:ok, {_, [{:abstract_code, {_vsn, abstract_code}}]}} -> abstract_code
+      _ -> []
+    end
+  end
+
   defp get_modules_from_applications do
     for [app] <- loaded_applications(),
         {:ok, modules} = :application.get_key(app, :modules),

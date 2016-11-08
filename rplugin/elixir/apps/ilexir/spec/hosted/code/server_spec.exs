@@ -64,6 +64,25 @@ defmodule Ilexir.Code.ServerSpec do
     end
   end
 
+  context "sources" do
+    it "finds modules" do
+      {:module, _, obj_code, env} = defmodule IamHere, do: __ENV__
+      send CodeServer, {:after_compile, {env, obj_code}}
+
+      expect(CodeServer.get_source(IamHere)).to eq({env.file, env.line})
+
+      {path, line} = CodeServer.get_source(Enum)
+      expect(path).to be_bitstring()
+      expect(line).to be_number()
+    end
+
+    it "finds functions" do
+      {path, line} = CodeServer.get_source({Enum, :all?})
+      expect(path).to be_bitstring()
+      expect(line).to be_number()
+    end
+  end
+
   defp expect_elixir_docs_returned(docs) do
     expect(length(docs)).to be(:>, 0)
     first_doc = Enum.at(docs,0)
