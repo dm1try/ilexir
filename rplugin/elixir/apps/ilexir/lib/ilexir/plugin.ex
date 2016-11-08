@@ -175,6 +175,39 @@ defmodule Ilexir.Plugin do
     timer_ref
   end
 
+  # GoToDefinition interface
+
+  command ilexir_go_to_def,
+    pre_evaluate: %{
+      "col('.') - 1" => current_column_number,
+      "line('.') - 1" => current_line_number
+    }
+  do
+    with {:ok, buffer} <- nvim_get_current_buf(),
+         {:ok, line} <- nvim_get_current_line(),
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename) do
+
+       opts =
+         if env = current_env(app, filename, current_line_number) do
+           [env: env]
+         else
+           flash_echo "Current enviroment is missed."
+           []
+         end
+
+       case App.call(app, Ilexir.ObjectSource, :find_source, [line, current_column_number, opts]) do
+         {path, line} ->
+           case nvim_command "e #{path} | :#{line}" do
+             {:error, error} -> echo "Unable go to path: #{path}, detail: #{inspect error}"
+             _ -> :ok
+           end
+         res -> echo "Definition is not found. Details: #{inspect res}"
+       end
+    else
+      error -> warning_with_echo("Unable to evaluate lines: #{inspect error}")
+    end
+  end
   # Autocomplete interface
 
   function ilexir_complete(find_start, base),
@@ -217,13 +250,11 @@ defmodule Ilexir.Plugin do
 
   defp expand_on_host(app, current_line, column_number, base, {filename, line_number}) do
     complete_opts =
-      with module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line_number]),
-      env when is_map(env) <- App.call(app, Ilexir.Compiler, :get_env, [module]) do
+      if env = current_env(app, filename, line_number) do
         [env: env]
       else
-        _ ->
-          flash_echo "Results for current enviroment are missed(seems like the current file is not compiled by Ilexir)."
-          []
+        flash_echo "Results for current enviroment are missed(seems like the current file is not compiled by Ilexir)."
+        []
       end
 
     items = App.call(app, Autocomplete, :expand, [current_line, column_number, base, complete_opts])
@@ -285,13 +316,11 @@ defmodule Ilexir.Plugin do
 
   defp evaluate_with_undefined(app, content, filename, line) do
     eval_opts =
-      with module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line]),
-      env when is_map(env) <- App.call(app, Ilexir.Compiler, :get_env, [module]) do
+      if env = current_env(app, filename, line) do
         [env: env]
       else
-        _ ->
-          flash_echo "Current enviroment is missed(seems like the current file is not compiled by Ilexir)."
-          []
+        flash_echo "Current enviroment is missed(seems like the current file is not compiled by Ilexir)."
+        []
       end
 
     case App.call(app, Ilexir.Evaluator, :eval_string, [content, eval_opts]) do
@@ -301,6 +330,12 @@ defmodule Ilexir.Plugin do
         App.call(app, Ilexir.Evaluator, :eval_string, ["#{var} = #{result}", eval_opts])
         evaluate_with_undefined(app, content, filename, line)
       {:error, error} -> echo_i(error)
+    end
+  end
+
+  defp current_env(app, filename, line) do
+    with module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line]) do
+      App.call(app, Ilexir.Compiler, :get_env, [module])
     end
   end
 
