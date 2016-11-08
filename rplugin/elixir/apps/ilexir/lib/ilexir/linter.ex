@@ -22,12 +22,13 @@ defmodule Ilexir.Linter do
     {:reply, :ok, state}
   end
 
-  def handle_call({:check, file, content, opts, %{id: app_id} = app}, _from, state) when is_list(opts) do
-    has_credo? = Enum.any?(state.apps_with_credo_ids, &(&1 == app_id))
+  def handle_call({:check, file, content, opts, app}, _from, state) when is_list(opts) do
     allow_compile? = Keyword.get(opts, :allow_compile, false)
 
-    linters = find_suitable_linters(has_credo?, allow_compile?)
-    Enum.each(linters, &run_linter(app, &1, file, content))
+    linters = find_suitable_linters(allow_compile?)
+    spawn_link fn->
+      Enum.each(linters, &run_linter(app, &1, file, content))
+    end
 
     {:reply, :ok, state}
   end
@@ -46,15 +47,9 @@ defmodule Ilexir.Linter do
     {:reply, {:ok, workers}, state}
   end
 
-  defp find_suitable_linters(has_credo?, allow_compile?) do
-    alias Ilexir.Linter.{Credo, Compiler, Ast}
-
-    cond do
-      has_credo? && allow_compile? -> [Credo, Compiler]
-      !has_credo? && allow_compile? -> [Compiler]
-      has_credo? && !allow_compile? -> [Credo]
-      true -> [Ast]
-    end
+  defp find_suitable_linters(allow_compile?) do
+    alias Ilexir.Linter.{Compiler, Ast}
+    if allow_compile?, do: [Compiler], else: [Ast]
   end
 
   defp run_linter(app, linter, file, content) do
