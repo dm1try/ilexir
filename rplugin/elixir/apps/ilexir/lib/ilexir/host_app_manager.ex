@@ -49,6 +49,11 @@ defmodule Ilexir.HostAppManager do
     GenServer.cast(__MODULE__, {:subscribe_on_app_load, subscriber})
   end
 
+  @doc "Returns a running app by id."
+  def get_app(id) do
+    GenServer.call(__MODULE__, {:get_app, id})
+  end
+
   def handle_call({:lookup, file_path}, _from, state) do
     result = case App.lookup(file_path, Map.values(state.apps)) do
       %{status: :running} = app -> {:ok, app}
@@ -91,6 +96,15 @@ defmodule Ilexir.HostAppManager do
 
   def handle_call(:running_apps, _from, state) do
     {:reply, Map.values(state.apps), state}
+  end
+
+  def handle_call({:get_app, id}, _from, %{apps: apps} = state) do
+    result = case Map.fetch(apps, id) do
+      {:ok, result} -> {:ok, result}
+      :error -> {:error, "application with id ##{inspect id} is not running"}
+    end
+
+    {:reply, result, state}
   end
 
   def handle_call({:stop_app, app_id, opts}, _from, state) when is_number(app_id) do

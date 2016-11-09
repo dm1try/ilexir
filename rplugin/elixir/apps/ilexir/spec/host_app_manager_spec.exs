@@ -76,7 +76,7 @@ defmodule Ilexir.HostAppManagerSpec do
       GenServer.stop(shared.manager)
     end
 
-    it "looks up for a suitable host for a provided file and runs it" do
+    it "looks up for a suitable running host for a provided file" do
       {status, app} = Manager.lookup(file_path)
       expect(status).to be(:ok)
       expect(app.status).to be(:running)
@@ -88,6 +88,10 @@ defmodule Ilexir.HostAppManagerSpec do
 
     it "returns error if the same app already started" do
       expect(Manager.start_app(shared.app.path)).to eq({:error, :already_started})
+    end
+
+    it "returns a running app by its id" do
+      expect(Manager.get_app(shared.app.id)).to eq({:ok, shared.app})
     end
   end
 
