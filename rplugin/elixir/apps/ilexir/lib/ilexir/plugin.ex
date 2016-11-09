@@ -13,7 +13,7 @@ defmodule Ilexir.Plugin do
   alias Ilexir.Autocomplete.OmniFunc, as: Autocomplete
 
   def init(_args) do
-    {:ok, %{timer_ref: nil}}
+    {:ok, %{timer_ref: nil, current_app_id: nil}}
   end
 
   # Host manager interface
@@ -22,16 +22,20 @@ defmodule Ilexir.Plugin do
     complete: :file
   do
     [path | args] = params
-    start_app(path, args)
+    app_id = start_app(path, args)
+    state = %{state | current_app_id: app_id}
   end
 
   command ilexir_start_in_working_dir(params) do
-    case nvim_call_function("getcwd", []) do
+    app_id = case nvim_call_function("getcwd", []) do
       {:ok, working_dir} ->
         start_app(working_dir, params)
       _ ->
         warning_with_echo("Unable to get 'current_dir'")
+        nil
     end
+
+    state = %{state | current_app_id: app_id}
   end
 
   command ilexir_running_apps do
@@ -40,10 +44,7 @@ defmodule Ilexir.Plugin do
   end
 
   command ilexir_stop_app do
-    with {:ok, buffer} <- vim_get_current_buffer,
-         {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
-
+    with {:ok, app} <- AppManager.get_app(state.current_app_id) do
       AppManager.stop_app(app)
       echo ~s[Application "#{app.name}(#{app.env})" going to stop.]
     else
@@ -53,9 +54,7 @@ defmodule Ilexir.Plugin do
   end
 
   command ilexir_open_iex do
-    with {:ok, buffer} <- vim_get_current_buffer,
-         {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
+    with {:ok, app} <- AppManager.get_app(state.current_app_id) do
 
     {:ok, wins} = nvim_list_wins()
 
@@ -83,9 +82,7 @@ defmodule Ilexir.Plugin do
   end
 
   function ilexir_get_current_app() do
-    with {:ok, buffer} <- vim_get_current_buffer,
-    {:ok, filename} <- nvim_buf_get_name(buffer),
-    {:ok, app} <- AppManager.lookup(filename) do
+    with {:ok, app} <- AppManager.get_app(state.current_app_id) do
       Map.take(app, [:id, :name, :env, :path, :remote_name])
     else
       _ -> -1
@@ -168,6 +165,17 @@ defmodule Ilexir.Plugin do
     state = %{state | timer_ref: delayed_lint(state.timer_ref)}
   end
 
+  on_event :buf_enter, [pattern: "*.{ex,exs}"] do
+    state = with {:ok, buffer} <- nvim_get_current_buf(),
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, %{id: app_id}} <- AppManager.lookup(filename) do
+
+      %{state | current_app_id: app_id}
+    else
+      _ -> state
+    end
+  end
+
   @delay_time 300 # ms
   defp delayed_lint(timer_ref) do
     :timer.cancel(timer_ref)
@@ -186,7 +194,7 @@ defmodule Ilexir.Plugin do
     with {:ok, buffer} <- nvim_get_current_buf(),
          {:ok, line} <- nvim_get_current_line(),
          {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
+         {:ok, app} <- AppManager.get_app(state.current_app_id) do
 
        opts =
          if env = current_env(app, filename, current_line_number) do
@@ -216,37 +224,22 @@ defmodule Ilexir.Plugin do
       "line('.') - 1" => current_line_number,
       "getline('.')" => current_line
     }
-  do
-    if find_start in [1, "1"] do
-      find_start_position(current_line, current_column_number)
-    else
-      do_complete(base, current_line, current_column_number, current_line_number)
+    do
+      with {:ok, buffer} <- vim_get_current_buffer,
+      {:ok, filename} <- nvim_buf_get_name(buffer),
+      {:ok, app} <- AppManager.get_app(state.current_app_id) do
+
+        if find_start in [1, "1"] do
+          App.call(app, Autocomplete, :find_complete_position, [current_line, current_column_number])
+        else
+          expand_on_host(app, current_line, current_column_number, base, {filename, current_line_number})
+        end
+      else
+        error ->
+          Logger.warn("Unable to complete: #{inspect error}")
+          -1
+      end
     end
-  end
-
-  defp find_start_position(current_line, current_column_number) do
-    with {:ok, buffer} <- vim_get_current_buffer,
-         {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
-
-      App.call(app, Autocomplete, :find_complete_position, [current_line, current_column_number])
-    else
-      _ -> -1
-    end
-  end
-
-  defp do_complete(base, current_line, column_number, line_number) do
-    with {:ok, buffer} <- vim_get_current_buffer,
-         {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
-
-    expand_on_host(app, current_line, column_number, base, {filename, line_number})
-    else
-      error ->
-        Logger.warn("Unable to complete: #{inspect error}")
-        -1
-    end
-  end
 
   defp expand_on_host(app, current_line, column_number, base, {filename, line_number}) do
     complete_opts =
@@ -276,12 +269,15 @@ defmodule Ilexir.Plugin do
     {args, _, _} = OptionParser.parse(command_params)
     {:ok, current_dir} = nvim_call_function("getcwd", [])
     path = Path.expand(path, current_dir)
+
     case AppManager.start_app(path, args ++ [callback: &start_callback/1]) do
-      {:ok, app} ->
-        ~s[Application "#{app.name}(#{app.env})" is loading...]
+      {:ok, %{name: name, env: env, id: id}} ->
+        echo ~s[Application "#{name}(#{env})" is loading...]
+        id
       {:error, error} ->
-        "Problem with running the app: #{inspect error}"
-    end |> echo
+        echo "Problem with running the app: #{inspect error}"
+        nil
+    end
   end
 
   def start_callback(%{status: status, name: name, env: env} = _app) do
