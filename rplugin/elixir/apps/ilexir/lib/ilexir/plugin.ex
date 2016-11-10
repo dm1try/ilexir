@@ -118,8 +118,10 @@ defmodule Ilexir.Plugin do
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.lookup(filename) do
 
-           content = Enum.join(lines, "\n")
-           evaluate_with_undefined(app, content, filename, range_start)
+       content = Enum.join(lines, "\n")
+
+       eval_opts = lookup_env(app, buffer, range_start) |> build_env_opts
+       evaluate_with_undefined(app, content, eval_opts)
     else
       error ->
         warning_with_echo("Unable to evaluate lines: #{inspect error}")
@@ -193,18 +195,11 @@ defmodule Ilexir.Plugin do
   do
     with {:ok, buffer} <- nvim_get_current_buf(),
          {:ok, line} <- nvim_get_current_line(),
-         {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.get_app(state.current_app_id) do
 
-       opts =
-         if env = current_env(app, filename, current_line_number) do
-           [env: env]
-         else
-           flash_echo "Current enviroment is missed."
-           []
-         end
+       source_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
 
-       case App.call(app, Ilexir.ObjectSource, :find_source, [line, current_column_number, opts]) do
+       case App.call(app, Ilexir.ObjectSource, :find_source, [line, current_column_number, source_opts]) do
          {path, line} ->
            case nvim_command "e #{path} | :#{line}" do
              {:error, error} -> echo "Unable go to path: #{path}, detail: #{inspect error}"
@@ -224,36 +219,24 @@ defmodule Ilexir.Plugin do
       "line('.') - 1" => current_line_number,
       "getline('.')" => current_line
     }
-    do
-      with {:ok, buffer} <- vim_get_current_buffer,
-      {:ok, filename} <- nvim_buf_get_name(buffer),
-      {:ok, app} <- AppManager.get_app(state.current_app_id) do
+  do
+    with {:ok, buffer} <- vim_get_current_buffer,
+         {:ok, app} <- AppManager.get_app(state.current_app_id) do
 
-        if find_start in [1, "1"] do
-          App.call(app, Autocomplete, :find_complete_position, [current_line, current_column_number])
-        else
-          expand_on_host(app, current_line, current_column_number, base, {filename, current_line_number})
+      if find_start in [1, "1"] do
+        App.call(app, Autocomplete, :find_complete_position, [current_line, current_column_number])
+      else
+        complete_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
+        items = App.call(app, Autocomplete, :expand, [current_line, current_column_number, base, complete_opts])
+
+        Enum.map items, fn(%{text: text, abbr: abbr, type: type, short_desc: short_desc})->
+          %{"word"=>text, "abbr"=> abbr, "kind" => type, "menu" => short_desc}
         end
-      else
-        error ->
-          Logger.warn("Unable to complete: #{inspect error}")
-          -1
       end
-    end
-
-  defp expand_on_host(app, current_line, column_number, base, {filename, line_number}) do
-    complete_opts =
-      if env = current_env(app, filename, line_number) do
-        [env: env]
-      else
-        flash_echo "Results for current enviroment are missed(seems like the current file is not compiled by Ilexir)."
-        []
-      end
-
-    items = App.call(app, Autocomplete, :expand, [current_line, column_number, base, complete_opts])
-
-    Enum.map items, fn(%{text: text, abbr: abbr, type: type, short_desc: short_desc})->
-      %{"word"=>text, "abbr"=> abbr, "kind" => type, "menu" => short_desc}
+    else
+      error ->
+        Logger.warn("Unable to complete: #{inspect error}")
+        -1
     end
   end
 
@@ -311,28 +294,58 @@ defmodule Ilexir.Plugin do
     nvim_get_var("ilexir_autocompile") != {:ok, 0}
   end
 
-  defp evaluate_with_undefined(app, content, filename, line) do
-    eval_opts =
-      if env = current_env(app, filename, line) do
-        [env: env]
-      else
-        flash_echo "Current enviroment is missed(seems like the current file is not compiled by Ilexir)."
-        []
-      end
-
+  defp evaluate_with_undefined(app, content, eval_opts) do
     case App.call(app, Ilexir.Evaluator, :eval_string, [content, eval_opts]) do
       {:ok, result} -> echo_i(result)
       {:undefined, var} ->
         {:ok, result} = nvim_call_function("input", ["Please provide '#{var}' to continue: "])
         App.call(app, Ilexir.Evaluator, :eval_string, ["#{var} = #{result}", eval_opts])
-        evaluate_with_undefined(app, content, filename, line)
+        evaluate_with_undefined(app, content, eval_opts)
       {:error, error} -> echo_i(error)
     end
   end
 
-  defp current_env(app, filename, line) do
-    with module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line]) do
-      App.call(app, Ilexir.Compiler, :get_env, [module])
+  defp build_env_opts(env) when env in [nil, false] do
+    flash_echo "Compile enviroment for current buffer is missed."
+    []
+  end
+
+  defp build_env_opts(env) when is_map(env) do
+    [env: env]
+  end
+
+  defp lookup_env(app, buffer, line) do
+    with  {:ok, filename} <- nvim_buf_get_name(buffer),
+          module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line]) do
+      case App.call(app, Ilexir.Compiler, :get_env, [module]) do
+        %{__struct__: Macro.Env} = env -> env
+        nil -> try_compile_buffer(buffer) && lookup_env(app, buffer, line)
+      end
+    end
+  end
+
+  defp try_compile_buffer(buffer) do
+    if autocompile_enabled? do
+      case compile_buffer(buffer) do
+        compiled when is_list(compiled) ->
+          echo "Buffer was auto compiled(in memory) by Ilexir."
+          true
+        error ->
+          warning_with_echo("Auto compilation is failed: #{inspect error}")
+          false
+      end
+    else
+      false
+    end
+  end
+
+  def compile_buffer(buffer) do
+    with {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
+         {:ok, filename} <- nvim_buf_get_name(buffer),
+         {:ok, app} <- AppManager.lookup(filename) do
+
+      content = Enum.join(lines, "\n")
+      App.call(app, Ilexir.Compiler, :compile_string, [content, filename])
     end
   end
 
