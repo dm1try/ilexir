@@ -48,8 +48,8 @@ defmodule Ilexir.Linter do
   end
 
   defp find_suitable_linters(allow_compile?) do
-    alias Ilexir.Linter.{Compiler, Ast}
-    if allow_compile?, do: [Compiler], else: [Ast]
+    alias Ilexir.Linter.{Compiler, Ast, Xref}
+    if allow_compile?, do: [Compiler, Xref], else: [Ast]
   end
 
   defp run_linter(app, linter, file, content) do
@@ -67,6 +67,7 @@ defmodule Ilexir.Linter do
     HostApp.load_hosted_file(app, "ilexir/linter/ast.ex")
     HostApp.load_hosted_file(app, "ilexir/linter/compiler.ex")
     HostApp.load_hosted_file(app, "ilexir/standard_error_stub.ex")
+    HostApp.load_hosted_file(app, "ilexir/linter/xref.ex")
 
     [Supervisor.Spec.worker(Ilexir.StandardErrorStub,[[],[]])]
   end
