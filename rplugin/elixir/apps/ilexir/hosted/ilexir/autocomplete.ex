@@ -118,13 +118,16 @@ defmodule Ilexir.Autocomplete.OmniFunc do
   defp expand_elixir_functions(mod, expression, env) do
     mod = resolve_alias(mod, env)
     module_exports(mod) |> Enum.reverse |> Enum.reduce([], fn({func, arity}, result)->
-      if String.starts_with?(to_string(func), expression) do
+      func_name = to_string(func)
+      if String.starts_with?(func_name, expression) && !function_for_internal_use?(func_name) do
         [to_complete_item(mod, {func, arity}) | result]
       else
         result
       end
     end)
   end
+
+  defp function_for_internal_use?(func_name), do: String.starts_with?(func_name, "_")
 
   defp module_exports(mod) do
     if String.starts_with?(to_string(mod), "Elixir") do

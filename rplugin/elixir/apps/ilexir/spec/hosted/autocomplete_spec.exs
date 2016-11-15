@@ -103,6 +103,17 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         end
       end
 
+      context "functions prefixed with underscores(for internal use)" do
+        let :line, do: "Enum.EmptyError.__"
+        let :base, do: "__"
+        let :current_column, do: 18
+
+        it "does not expand internal functions" do
+          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          expect(results).to_not have_completed_item("__struct__")
+        end
+      end
+
       context "expand macros" do
         let :line, do: "Bitwise."
         let :base, do: ""
