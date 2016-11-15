@@ -243,6 +243,10 @@ defmodule Ilexir.Plugin do
   # First assumption use FileType event for this.
   # TODO: check why FileType event does not triggered for openning the file directly:
   # $ nvim some_file.ex
+  on_event :file_type, pattern: "elixir" do
+    nvim_command "set omnifunc=IlexirComplete"
+  end
+
   on_event :buf_read_post, pattern: "*.{ex,exs}" do
     nvim_command "set omnifunc=IlexirComplete"
     Ilexir.QuickFix.clear_items()
