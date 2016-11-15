@@ -302,11 +302,25 @@ defmodule Ilexir.Plugin do
     case App.call(app, Ilexir.Evaluator, :eval_string, [content, eval_opts]) do
       {:ok, result} -> echo_i(result)
       {:undefined, var} ->
-        {:ok, result} = nvim_call_function("input", ["Please provide '#{var}' to continue: "])
-        App.call(app, Ilexir.Evaluator, :eval_string, ["#{var} = #{result}", eval_opts])
-        evaluate_with_undefined(app, content, eval_opts)
+        case var_from_nvim_input(var) do
+          {:ok, result} ->
+            App.call(app, Ilexir.Evaluator, :eval_string, ["#{var} = #{result}", eval_opts])
+            evaluate_with_undefined(app, content, eval_opts)
+          _ -> :ignore
+        end
       {:error, error} -> echo_i(error)
     end
+  end
+
+  @eval_input_timeout 30_000
+
+  defp var_from_nvim_input(var) do
+    MessagePack.RPC.Session.call(
+      NVim.Session,
+      "nvim_call_function",
+      ["input", ["Please provide '#{var}' to continue: "]],
+      @eval_input_timeout
+    )
   end
 
   defp build_env_opts(env) when env in [nil, false] do
