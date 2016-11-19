@@ -183,6 +183,37 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
           expect(results).to have_completed_item("sleep")
         end
       end
+
+      context "abbreviation format" do
+        let :line, do: ":erlang.atom_to_binar"
+        let :base, do: "atom_to_binar"
+        let :current_column, do: 21
+
+        it do: expect(
+          Autocomplete.find_complete_position(line, current_column)
+        ).to eq(current_column_after_finding)
+
+        it "includes params" do
+          [%{abbr: abbr}] = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          expect(abbr).to eq("atom_to_binary(atom, encoding)")
+        end
+      end
+
+      context "multiple heads" do
+        let :line, do: ":erlang.statistics"
+        let :base, do: "statistics"
+        let :current_column, do: 18
+        let :expected_function_heads, do: 14
+
+        it do: expect(
+          Autocomplete.find_complete_position(line, current_column)
+        ).to eq(current_column_after_finding)
+
+        it "includes all available functions heads" do
+          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          expect(results).to have_length(expected_function_heads)
+        end
+      end
     end
   end
 
@@ -225,6 +256,17 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
 
       expect(results).to have_completed_item("En")
       expect(results).to have_completed_item("MyTimer")
+    end
+
+    context "type format" do
+      let :line, do: "MyTimer"
+      let :base, do: "MyTimer"
+      let :current_column, do: 0
+
+      it "includes original module" do
+        [%{type: type}] = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+        expect(type).to have(":timer")
+      end
     end
 
     context do
