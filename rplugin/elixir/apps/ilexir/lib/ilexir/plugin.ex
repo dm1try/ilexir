@@ -210,6 +210,29 @@ defmodule Ilexir.Plugin do
       error -> warning_with_echo("Unable to evaluate lines: #{inspect error}")
     end
   end
+
+  command ilexir_open_online_doc,
+    pre_evaluate: %{
+      "col('.') - 1" => current_column_number,
+      "line('.') - 1" => current_line_number
+    }
+  do
+    with {:ok, buffer} <- nvim_get_current_buf(),
+    {:ok, line} <- nvim_get_current_line(),
+    {:ok, app} <- AppManager.get_app(state.current_app_id) do
+
+      source_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
+
+      with {:ok, url} <- App.call(app, Ilexir.ObjectSource, :online_docs_url, [line, current_column_number, source_opts]),
+           :ok <- Ilexir.Utils.Web.open_url(url) do
+
+        echo "#{url} opened."
+      end
+    else
+      error -> warning_with_echo("Unable to open docs: #{inspect error}")
+    end
+  end
+
   # Autocomplete interface
 
   function ilexir_complete(find_start, base),

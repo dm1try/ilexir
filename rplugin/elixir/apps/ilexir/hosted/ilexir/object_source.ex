@@ -4,6 +4,7 @@ defmodule Ilexir.ObjectSource do
   """
 
   alias Ilexir.Code.Server, as: CodeServer
+  import Ilexir.ObjectSource.Web
 
   @type source_object :: {:module, atom} | {:erlang_module, atom} | {:function, atom, atom}
 
@@ -22,6 +23,16 @@ defmodule Ilexir.ObjectSource do
       {type, object} when type in [:module, :erlang_module, :function] ->
         CodeServer.get_source(object)
       _ -> :not_implemented
+    end
+  end
+
+  @doc "Returns online docs for current position in line"
+  def online_docs_url(line, current_column, opts \\ []) do
+    case find_object(line, current_column, opts) do
+      {type, _} = object when type in [:module, :erlang_module, :function] ->
+        {:ok, docs_url(object)}
+      _ ->
+        {:error, :not_implemented}
     end
   end
 

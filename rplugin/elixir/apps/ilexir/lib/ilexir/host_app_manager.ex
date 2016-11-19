@@ -275,6 +275,7 @@ defmodule Ilexir.HostAppManager do
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/code.ex"),
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/code/server.ex"),
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/autocomplete.ex"),
+         [_loaded|_] <- App.load_hosted_file(app, "ilexir/object_source/web.ex"),
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/object_source.ex"),
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/evaluator.ex") do
 
