@@ -323,14 +323,8 @@ defmodule Ilexir.Plugin do
     )
   end
 
-  defp build_env_opts(env) when env in [nil, false] do
-    flash_echo "Compile enviroment for current buffer is missed."
-    []
-  end
-
-  defp build_env_opts(env) when is_map(env) do
-    [env: env]
-  end
+  defp build_env_opts(env) when env in [nil, false], do: []
+  defp build_env_opts(env) when is_map(env), do: [env: env]
 
   defp lookup_env(app, buffer, line) do
     with  {:ok, filename} <- nvim_buf_get_name(buffer),
@@ -346,10 +340,10 @@ defmodule Ilexir.Plugin do
     if autocompile_enabled? do
       case compile_buffer(buffer) do
         compiled when is_list(compiled) ->
-          echo "Buffer was auto compiled(in memory) by Ilexir."
+          Logger.info "Buffer was auto compiled(in memory) by Ilexir."
           true
         error ->
-          warning_with_echo("Auto compilation is failed: #{inspect error}")
+          Logger.info("Auto compilation is failed: #{inspect error}")
           false
       end
     else
@@ -380,12 +374,5 @@ defmodule Ilexir.Plugin do
 
   def echo_i(param) do
     param |> inspect(pretty: true) |> echo
-  end
-
-  defp flash_echo(param, delay \\ 2000) do
-    spawn_link fn->
-      :timer.sleep delay
-      echo(param)
-    end
   end
 end
