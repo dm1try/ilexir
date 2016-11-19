@@ -77,6 +77,13 @@ defmodule Ilexir.CodeSpec do
     end
   end
 
+  describe ".elixir_module?" do
+    it "returns true if a module is elixir module" do
+      expect(Code.elixir_module?(Atom)).to eq(true)
+      expect(Code.elixir_module?(:timer)).to eq(false)
+    end
+  end
+
   defp expect_elixir_docs_returned(docs) do
     expect(length(docs)).to be(:>, 0)
     first_doc = Enum.at(docs,0)

@@ -42,7 +42,7 @@ defmodule Ilexir.Code do
     def compile_info(_module), do: []
   end
 
-  @doc "Returns source path"
+  @doc "Returns the source path"
   def get_source_path(module) when is_atom(module) do
     with compile_info when is_list(compile_info) <- Info.compile_info(module),
          source when is_list(source) <- Keyword.get(compile_info, :source) do
@@ -69,6 +69,11 @@ defmodule Ilexir.Code do
 
     Enum.find_value abstract_code,
       &(match?({:function, _, ^func_name, ^arity, _}, &1) && elem(&1, 1))
+  end
+
+  @doc "Checks the given module for Elixirity"
+  def elixir_module?(module) when is_atom(module) do
+    module |> Atom.to_string |> String.starts_with?("Elixir.")
   end
 
   defp get_abstract_code(obj_code) do
