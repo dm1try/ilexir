@@ -34,7 +34,6 @@ defmodule Ilexir.Plugin do
         warning_with_echo("Unable to get 'current_dir'")
         nil
     end
-
     state = %{state | current_app_id: app_id}
   end
 
@@ -230,7 +229,7 @@ defmodule Ilexir.Plugin do
         items = App.call(app, Autocomplete, :expand, [current_line, current_column_number, base, complete_opts])
 
         Enum.map items, fn(%{text: text, abbr: abbr, type: type, short_desc: short_desc})->
-          %{"word"=>text, "abbr"=> abbr, "kind" => type, "menu" => short_desc}
+          %{"word"=>text, "abbr"=> abbr, "kind" => type, "menu" => short_desc, "dup" => 1}
         end
       end
     else
