@@ -22,7 +22,7 @@ defmodule Ilexir.Autocomplete.OmniFunc do
     env = Keyword.get(args, :env, %{functions: [], macros: [], aliases: []})
     line = String.slice(line, 0..current_column - 1)
 
-    case Regex.run(~r/[A-Za-z.:]+\z/, line) do
+    case Regex.run(~r/[A-Za-z.:_]+\z/, line) do
       [":"] ->
          expand_erlang_modules(expression)
       [founded] ->
