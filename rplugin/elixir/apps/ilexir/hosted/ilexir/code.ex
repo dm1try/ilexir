@@ -13,7 +13,7 @@ defmodule Ilexir.Code do
   @doc "Returns all available modules founded in running application."
   def all_modules do
     modules = Enum.map(:code.all_loaded(), &(elem(&1, 0)))
-    modules ++ get_modules_from_applications()
+    (modules ++ get_modules_from_applications()) |> Enum.uniq
   end
 
   @doc "Returns object code"
