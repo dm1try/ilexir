@@ -43,7 +43,7 @@ defmodule Ilexir.Plugin do
   end
 
   command ilexir_stop_app do
-    with {:ok, app} <- AppManager.get_app(state.current_app_id) do
+    with {:ok, app} <- lookup_current_app(state) do
       AppManager.stop_app(app)
       echo ~s[Application "#{app.name}(#{app.env})" going to stop.]
     else
@@ -53,7 +53,7 @@ defmodule Ilexir.Plugin do
   end
 
   command ilexir_open_iex do
-    with {:ok, app} <- AppManager.get_app(state.current_app_id) do
+    with {:ok, app} <- lookup_current_app(state) do
 
     {:ok, wins} = nvim_list_wins()
 
@@ -94,7 +94,7 @@ defmodule Ilexir.Plugin do
      with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
          {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
+         {:ok, app} <- lookup_current_app(state) do
 
        content = Enum.join(lines, "\n")
        case App.call(app, Ilexir.Compiler, :compile_string, [content, filename]) do
@@ -114,8 +114,7 @@ defmodule Ilexir.Plugin do
   command ilexir_eval, range: true do
     with {:ok, buffer} <- vim_get_current_buffer,
          {:ok, lines} <- nvim_buf_get_lines(buffer, range_start - 1, range_end, false),
-         {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
+         {:ok, app} <- lookup_current_app(state) do
 
        content = Enum.join(lines, "\n")
 
@@ -128,17 +127,15 @@ defmodule Ilexir.Plugin do
   end
 
   command ilexir_eval_clear_bindings do
-    with {:ok, buffer} <- vim_get_current_buffer,
-         {:ok, filename} <- nvim_buf_get_name(buffer),
-         {:ok, app} <- AppManager.lookup(filename) do
-
-       case App.call(app, Ilexir.Evaluator, :set_bindings, [[]]) do
-         [] -> echo "Cleared."
-         _ -> echo "Something was going wrong."
+    with {:ok, app} <- lookup_current_app(state) do
+       message = case App.call(app, Ilexir.Evaluator, :set_bindings, [[]]) do
+         [] -> "Cleared."
+         _  -> "Something was going wrong."
        end
+
+       echo message
     else
-      error ->
-        warning_with_echo("Unable to clear bindings: #{inspect error}")
+      error -> warning_with_echo("Unable to clear bindings: #{inspect error}")
     end
   end
 
@@ -194,7 +191,7 @@ defmodule Ilexir.Plugin do
   do
     with {:ok, buffer} <- nvim_get_current_buf(),
          {:ok, line} <- nvim_get_current_line(),
-         {:ok, app} <- AppManager.get_app(state.current_app_id) do
+         {:ok, app} <- lookup_current_app(state) do
 
        source_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
 
@@ -219,7 +216,7 @@ defmodule Ilexir.Plugin do
   do
     with {:ok, buffer} <- nvim_get_current_buf(),
     {:ok, line} <- nvim_get_current_line(),
-    {:ok, app} <- AppManager.get_app(state.current_app_id) do
+    {:ok, app} <- lookup_current_app(state) do
 
       source_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
 
@@ -243,7 +240,7 @@ defmodule Ilexir.Plugin do
     }
   do
     with {:ok, buffer} <- vim_get_current_buffer,
-         {:ok, app} <- AppManager.get_app(state.current_app_id) do
+         {:ok, app} <- lookup_current_app(state) do
 
       if find_start in [1, "1"] do
         App.call(app, Autocomplete, :find_complete_position, [current_line, current_column_number])
@@ -287,6 +284,17 @@ defmodule Ilexir.Plugin do
         echo "Problem with running the app: #{inspect error}"
         nil
     end
+  end
+
+  defp lookup_current_app(%{current_app_id: nil} = _state) do
+    with {:ok, buffer} <- nvim_get_current_buf(),
+         {:ok, filename} <- nvim_buf_get_name(buffer) do
+      AppManager.lookup(filename)
+    end
+  end
+
+  defp lookup_current_app(%{current_app_id: app_id} = _state) do
+    AppManager.get_app(app_id)
   end
 
   def start_callback(%{status: status, name: name, env: env} = _app) do
