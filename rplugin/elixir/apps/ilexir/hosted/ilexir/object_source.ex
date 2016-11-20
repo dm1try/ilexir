@@ -5,8 +5,11 @@ defmodule Ilexir.ObjectSource do
 
   alias Ilexir.Code.Server, as: CodeServer
   import Ilexir.ObjectSource.Web
+  import Ilexir.Code, only: [elixir_module?: 1]
 
-  @type source_object :: {:module, atom} | {:erlang_module, atom} | {:function, atom, atom}
+  @type source_function :: {atom, {atom, number}} | {atom, atom}
+  @type source_object :: {:module, atom} | {:erlang_module, atom} | {:function, source_function} | {:erlang_function, source_function}
+  @supported_types [:module, :function, :erlang_module, :erlang_function]
 
   @spec find_object(String.t(), number, list) :: source_object | nil
   @doc "Finds source object for the current position in line"
@@ -29,7 +32,7 @@ defmodule Ilexir.ObjectSource do
   @doc "Returns online docs for current position in line"
   def online_docs_url(line, current_column, opts \\ []) do
     case find_object(line, current_column, opts) do
-      {type, _} = object when type in [:module, :erlang_module, :function] ->
+      {type, _} = object when type in @supported_types ->
         {:ok, docs_url(object)}
       _ ->
         {:error, :not_implemented}
@@ -59,7 +62,11 @@ defmodule Ilexir.ObjectSource do
     aliases = prev_aliases(tokens, index) ++ aliases
     mod = aliases |> Module.concat |> resolve_alias(env)
 
-    {:module, mod}
+    if elixir_module?(mod) do
+      {:module, mod}
+    else
+      {:erlang_module, mod}
+    end
   end
 
   defp process_token({{identifier, _location, func}, index}, tokens, env)
@@ -68,11 +75,16 @@ defmodule Ilexir.ObjectSource do
       {{:., _,}, index} ->
         case Enum.at(tokens, index - 1) do
           {{:atom, _location, mod}, _index} ->
-            {:function, {mod, func}}
+            {:erlang_function, {mod, func}}
           {{:aliases, _location, aliases}, index} ->
             aliases =  prev_aliases(tokens, index) ++ aliases
             mod = aliases |> Module.concat |> resolve_alias(env)
-            {:function, {mod, func}}
+
+            if elixir_module?(mod) do
+              {:function, {mod, func}}
+            else
+              {:erlang_function, {mod, func}}
+            end
             _ -> nil
         end
       _ ->

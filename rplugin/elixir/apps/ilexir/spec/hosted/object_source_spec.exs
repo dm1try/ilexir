@@ -35,14 +35,14 @@ defmodule Ilexir.ObjectSourceSpec do
       let :current_column, do: 9
 
       it "returns module" do
-        expect(ObjectSource.find_object(line, current_column)).to eq({:function, {:timer, :sleep}})
+        expect(ObjectSource.find_object(line, current_column)).to eq({:erlang_function, {:timer, :sleep}})
       end
 
       context "without parentensis" do
         let :line, do: ":timer.sleep 500"
 
         it "returns module" do
-          expect(ObjectSource.find_object(line, current_column)).to eq({:function, {:timer, :sleep}})
+          expect(ObjectSource.find_object(line, current_column)).to eq({:erlang_function, {:timer, :sleep}})
         end
       end
     end
