@@ -201,7 +201,8 @@ defmodule Ilexir.Plugin do
              {:error, error} -> echo "Unable go to path: #{path}, detail: #{inspect error}"
              _ -> :ok
            end
-         res -> echo "Definition is not found. Details: #{inspect res}"
+
+         {:error, :not_implemented} -> echo "Source not found."
        end
     else
       error -> warning_with_echo("Unable to evaluate lines: #{inspect error}")
@@ -220,11 +221,17 @@ defmodule Ilexir.Plugin do
 
       source_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
 
-      with {:ok, url} <- App.call(app, Ilexir.ObjectSource, :online_docs_url, [line, current_column_number, source_opts]),
-           :ok <- Ilexir.Utils.Web.open_url(url) do
+      message =
+        with {:ok, url} <- App.call(app, Ilexir.ObjectSource, :online_docs_url, [line, current_column_number, source_opts]),
+              :ok <- Ilexir.Utils.Web.open_url(url) do
 
-        echo "#{url} opened."
-      end
+          "#{url} opened."
+        else
+          {:error, :not_implemented} -> "Source not found."
+          :error -> "Problem with running OS command."
+        end
+
+      echo message
     else
       error -> warning_with_echo("Unable to open docs: #{inspect error}")
     end

@@ -25,7 +25,7 @@ defmodule Ilexir.ObjectSource do
     case find_object(line, current_column, opts) do
       {type, object} when type in @supported_types ->
         {:ok, CodeServer.get_source(object)}
-      _ -> :not_implemented
+      _ -> {:error, :not_implemented}
     end
   end
 
