@@ -12,11 +12,56 @@ defmodule Ilexir.ObjectSourceSpec do
     end
   end
 
+  context "cursor on function name without params" do
+    let :line, do: "empty? = Module.any?"
+    let :current_column, do: 19
+
+    it "returns module with function arity" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Module, {:any?, 0}}})
+    end
+  end
+
   context "cursor on function name" do
     let :current_column, do: 14
 
     it "returns module with function arity" do
-      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, :any?}})
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:any?, 1}}})
+    end
+  end
+
+  context "the function is piped" do
+    let :line, do: "|> Enum.at(0)"
+    let :current_column, do: 9
+
+    it "returns function with actula arity(+1)" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:at, 2}}})
+    end
+  end
+
+  context "with fn-> callback" do
+    let :line, do: "result = Enum.any?(items, fn(item)-> 1 end)"
+    let :current_column, do: 16
+
+    it "returns function with arity" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:any?, 2}}})
+    end
+  end
+
+  context "with closed fn-> callback without parenthesis" do
+    let :line, do: "result = Enum.any? items, fn(item)-> 1 end"
+    let :current_column, do: 16
+
+    it "returns function with arity" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:any?, 2}}})
+    end
+  end
+
+  context "with fn-> callback with new line" do
+    let :line, do: "result = Enum.any? items, fn(item)->"
+    let :current_column, do: 16
+
+    it "returns function with arity" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:any?, 2}}})
     end
   end
 
@@ -35,14 +80,14 @@ defmodule Ilexir.ObjectSourceSpec do
       let :current_column, do: 9
 
       it "returns module" do
-        expect(ObjectSource.find_object(line, current_column)).to eq({:erlang_function, {:timer, :sleep}})
+        expect(ObjectSource.find_object(line, current_column)).to eq({:erlang_function, {:timer, {:sleep, 1}}})
       end
 
       context "without parentensis" do
         let :line, do: ":timer.sleep 500"
 
         it "returns module" do
-          expect(ObjectSource.find_object(line, current_column)).to eq({:erlang_function, {:timer, :sleep}})
+          expect(ObjectSource.find_object(line, current_column)).to eq({:erlang_function, {:timer, {:sleep, 1}}})
         end
       end
     end
@@ -69,7 +114,7 @@ defmodule Ilexir.ObjectSourceSpec do
 
       it "returns sources" do
         expect(ObjectSource.find_object(line, 10)).to eq({:module, All.MyMod})
-        expect(ObjectSource.find_object(line, 15)).to eq({:function, {All.MyMod, :read}})
+        expect(ObjectSource.find_object(line, 15)).to eq({:function, {All.MyMod, {:read, 0}}})
       end
     end
   end
@@ -101,7 +146,7 @@ defmodule Ilexir.ObjectSourceSpec do
       let :current_column, do: 9
 
       it "returns actual module" do
-        expect(ObjectSource.find_object(line, current_column, env: env)).to eq({:function, {File, :read}})
+        expect(ObjectSource.find_object(line, current_column, env: env)).to eq({:function, {File, {:read, 1}}})
       end
     end
 
@@ -110,8 +155,7 @@ defmodule Ilexir.ObjectSourceSpec do
       let :current_column, do: 9
 
       it "returns actual module" do
-
-        expect(ObjectSource.find_object(line, current_column, env: env)).to eq({:function, {File, :read}})
+        expect(ObjectSource.find_object(line, current_column, env: env)).to eq({:function, {File, {:read, 1}}})
       end
     end
   end
