@@ -39,7 +39,12 @@ defmodule Ilexir.Xref.Server do
 
   defp remote_dispatches(nil = _tracker_pid), do: []
   defp remote_dispatches(tracker_pid) do
-    Kernel.LexicalTracker.remote_dispatches(tracker_pid)
+    # haha, re-thinking this :)
+    if Process.alive?(tracker_pid) do
+      Kernel.LexicalTracker.remote_dispatches(tracker_pid)
+    else
+      []
+    end
   end
 end
 
