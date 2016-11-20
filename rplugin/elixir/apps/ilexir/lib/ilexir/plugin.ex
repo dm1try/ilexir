@@ -199,7 +199,7 @@ defmodule Ilexir.Plugin do
        source_opts = lookup_env(app, buffer, current_line_number) |> build_env_opts
 
        case App.call(app, Ilexir.ObjectSource, :find_source, [line, current_column_number, source_opts]) do
-         {path, line} ->
+         {:ok, {path, line}} ->
            case nvim_command "e #{path} | :#{line}" do
              {:error, error} -> echo "Unable go to path: #{path}, detail: #{inspect error}"
              _ -> :ok

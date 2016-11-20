@@ -23,8 +23,8 @@ defmodule Ilexir.ObjectSource do
   @doc "Returns source object path for current position in line"
   def find_source(line, current_column, opts \\ []) do
     case find_object(line, current_column, opts) do
-      {type, object} when type in [:module, :erlang_module, :function] ->
-        CodeServer.get_source(object)
+      {type, object} when type in @supported_types ->
+        {:ok, CodeServer.get_source(object)}
       _ -> :not_implemented
     end
   end
