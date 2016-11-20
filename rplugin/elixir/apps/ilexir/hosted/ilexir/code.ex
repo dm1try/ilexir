@@ -57,14 +57,14 @@ defmodule Ilexir.Code do
       &(match?({:attribute, _, :module, ^module}, &1) && elem(&1, 1))
   end
 
-  def find_source_line({:function, func_name}, obj_code) do
+  def find_source_line({:function, func_name}, obj_code) when is_atom(func_name) do
     abstract_code = get_abstract_code(obj_code)
 
     Enum.find_value abstract_code,
       &(match?({:function, _, ^func_name, _, _}, &1) && elem(&1, 1))
   end
 
-  def find_source_line({:function, func_name, arity}, obj_code) do
+  def find_source_line({:function, {func_name, arity}}, obj_code) do
     abstract_code = get_abstract_code(obj_code)
 
     Enum.find_value abstract_code,
