@@ -31,9 +31,12 @@ defmodule Ilexir.Xref.Server do
     {:noreply, state}
   end
 
+  defp all_dispatches(nil), do: {%{}, %{}}
   defp all_dispatches(file_data) do
-    Enum.reduce file_data, {%{}, %{}}, fn({_mod, {compile_dispatches, runtime_dispatches}}, {all_compile, all_runtime})->
-      {Map.merge(all_compile, compile_dispatches), Map.merge(all_runtime, runtime_dispatches)}
+    Enum.reduce file_data, {%{}, %{}}, fn
+      ({_mod, {compile_dispatches, runtime_dispatches}}, {all_compile, all_runtime})->
+        {Map.merge(all_compile, compile_dispatches), Map.merge(all_runtime, runtime_dispatches)}
+      (_, acc) -> acc
     end
   end
 
