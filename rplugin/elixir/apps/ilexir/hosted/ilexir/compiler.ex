@@ -65,10 +65,15 @@ defmodule Ilexir.Compiler do
     ast = Macro.postwalk(ast, &inject_after_compile_callback(&1, after_compile_callback_ast))
 
     spawn_link fn->
+      old_ignore_module_opt = Code.compiler_options[:ignore_module_conflict]
+      if !old_ignore_module_opt, do: Code.compiler_options(ignore_module_conflict: true)
+
       try do
         GenServer.reply(from, Code.compile_quoted(ast, file))
       rescue
         error -> GenServer.reply(from, {:error, error})
+      after
+        if !old_ignore_module_opt, do: Code.compiler_options(ignore_module_conflict: false)
       end
     end
 

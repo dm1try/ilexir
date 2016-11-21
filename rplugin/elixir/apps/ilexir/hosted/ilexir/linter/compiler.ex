@@ -3,14 +3,9 @@ defmodule Ilexir.Linter.Compiler do
   alias Ilexir.StandardErrorStub
 
   def run(file, content) do
-    old_ignore_module_opt = Code.compiler_options[:ignore_module_conflict]
-    if !old_ignore_module_opt, do: Code.compiler_options(ignore_module_conflict: true)
-
     res = StandardErrorStub.with_stab_standard_error fn->
       Ilexir.Compiler.compile_string(content, file)
     end
-
-    if !old_ignore_module_opt, do: Code.compiler_options(ignore_module_conflict: false)
 
     case res do
       {:error, error} ->
