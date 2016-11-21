@@ -363,13 +363,19 @@ defmodule Ilexir.Plugin do
   defp build_env_opts(env) when env in [nil, false], do: []
   defp build_env_opts(env) when is_map(env), do: [env: env]
 
-  defp lookup_env(app, buffer, line) do
+  defp get_env(app, buffer, line) do
     with  {:ok, filename} <- nvim_buf_get_name(buffer),
           module when is_atom(module) <- App.call(app, Ilexir.ModuleLocation.Server, :get_module, [filename, line]) do
-      case App.call(app, Ilexir.Compiler, :get_env, [module]) do
-        %{__struct__: Macro.Env} = env -> env
-        nil -> try_compile_buffer(buffer) && lookup_env(app, buffer, line)
-      end
+      App.call(app, Ilexir.Compiler, :get_env, [module])
+    else
+      nil
+    end
+  end
+
+  defp lookup_env(app, buffer, line) do
+    case get_env(app, buffer, line) do
+      %{__struct__: Macro.Env} = env -> env
+      nil -> try_compile_buffer(buffer) && get_env(app, buffer, line)
     end
   end
 
