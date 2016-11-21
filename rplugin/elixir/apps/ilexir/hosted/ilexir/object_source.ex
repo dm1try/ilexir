@@ -115,7 +115,9 @@ defmodule Ilexir.ObjectSource do
     end
   end
 
-  defp fetch_params([], [{:stab_op, _, :->}|_] = param_tokens) do
+  defp fetch_params([], [last_token|_] = param_tokens)
+    when elem(last_token, 0) in [:stab_op, :do]
+  do
     Enum.reverse([{:end, {0,0,0}}, {:number, {0,0,0}, 1}|param_tokens])
   end
 

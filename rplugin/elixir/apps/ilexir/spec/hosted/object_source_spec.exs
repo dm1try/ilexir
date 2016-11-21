@@ -56,12 +56,21 @@ defmodule Ilexir.ObjectSourceSpec do
     end
   end
 
-  context "with fn-> callback with new line" do
+  context "with not closed fn-> callback" do
     let :line, do: "result = Enum.any? items, fn(item)->"
     let :current_column, do: 16
 
     it "returns function with arity" do
       expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:any?, 2}}})
+    end
+  end
+
+  context "with not closed :do block" do
+    let :line, do: "Mod.func params do"
+    let :current_column, do: 5
+
+    it "returns function with arity" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Mod, {:func, 2}}})
     end
   end
 
