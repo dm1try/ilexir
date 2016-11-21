@@ -150,6 +150,15 @@ defmodule Ilexir.ObjectSourceSpec do
       end
     end
 
+    context "cursor on imported macro" do
+      let :line, do: "one = if true, do: 1"
+      let :current_column, do: 7
+
+      it "returns actual module" do
+        expect(ObjectSource.find_object(line, current_column, env: env)).to eq({:function, {Kernel, {:if, 2}}})
+      end
+    end
+
     context "the call in square brackets" do
       let :line, do: "res = [read(file_path), 0]"
       let :current_column, do: 9

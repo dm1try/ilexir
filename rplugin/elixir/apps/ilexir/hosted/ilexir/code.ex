@@ -57,18 +57,30 @@ defmodule Ilexir.Code do
       &(match?({:attribute, _, :module, ^module}, &1) && elem(&1, 1))
   end
 
+  @macro_func_prefix "MACRO-"
+
   def find_source_line({:function, func_name}, obj_code) when is_atom(func_name) do
     abstract_code = get_abstract_code(obj_code)
 
-    Enum.find_value abstract_code,
-      &(match?({:function, _, ^func_name, _, _}, &1) && elem(&1, 1))
+    macro_name = :"#{@macro_func_prefix}#{func_name}"
+    Enum.find_value abstract_code, fn
+      {:function, line, name, _, _}
+        when name in [func_name, macro_name] -> line
+      _ -> nil
+    end
   end
 
   def find_source_line({:function, {func_name, arity}}, obj_code) do
     abstract_code = get_abstract_code(obj_code)
 
-    Enum.find_value abstract_code,
-      &(match?({:function, _, ^func_name, ^arity, _}, &1) && elem(&1, 1))
+    macro_name = :"#{@macro_func_prefix}#{func_name}"
+    macro_arity = arity + 1
+
+    Enum.find_value abstract_code, fn
+      {:function, line, ^func_name, ^arity, _} -> line
+      {:function, line, ^macro_name, ^macro_arity, _} -> line
+      _ -> nil
+    end
   end
 
   @doc "Checks the given module for Elixirity"

@@ -166,8 +166,8 @@ defmodule Ilexir.ObjectSource do
   end
 
   defp resolve_imported(_func_name, nil), do: nil
-  defp resolve_imported(func, %{functions: functions} = _env) do
-    Enum.find_value functions, fn({mod, functions})->
+  defp resolve_imported(func, %{functions: functions, macros: macros} = _env) do
+    Enum.find_value functions ++ macros, fn({mod, functions})->
       Enum.find(functions, &(&1 == func)) && {mod, func}
     end
   end

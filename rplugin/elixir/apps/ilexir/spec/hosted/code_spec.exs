@@ -57,6 +57,9 @@ defmodule Ilexir.CodeSpec do
 
           @doc "This is func 2"
           def func2, do: 2
+
+          @doc "This is macro"
+          defmacro macro1, do: :nothing
         end
 
         obj_code
@@ -69,6 +72,7 @@ defmodule Ilexir.CodeSpec do
       it "finds functions source line in object code" do
         expect(Code.find_source_line({:function, {:func, 1}}, code)).to eq(current_line + 4)
         expect(Code.find_source_line({:function, {:func2, 0}}, code)).to eq(current_line + 7)
+        expect(Code.find_source_line({:function, {:macro1, 0}}, code)).to eq(current_line + 10)
       end
 
       it "finds functions without provided arity" do
