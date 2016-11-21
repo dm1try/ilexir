@@ -97,12 +97,12 @@ defmodule Ilexir.Plugin do
          {:ok, app} <- lookup_current_app(state) do
 
        content = Enum.join(lines, "\n")
-       case App.call(app, Ilexir.Compiler, :compile_string, [content, filename]) do
-          {:error, error} ->
-            echo "Compile error: #{inspect error}"
-          _ ->
-            echo "Compiled."
+       message = case App.call(app, Ilexir.Compiler, :compile_string, [content, filename]) do
+          {:error, error} -> "Compile error: #{inspect error}"
+          _ -> "Compiled."
        end
+
+       echo message
     else
       error ->
         warning_with_echo("Unable to compile the file: #{inspect error}")
