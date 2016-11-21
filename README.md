@@ -34,10 +34,31 @@
   > Changes for this var are applied in runtime `:let ilexir_autocompile = 0`
   
 ## Features
- - 100% "elixirish" and extensible :)
- - app integration/linting/autocomplete/inline evaluation/other is coming soon
+ - "smart" omni completion
+ 
+ ![autocomplete](https://cloud.githubusercontent.com/assets/486807/20452668/8cfb84aa-ae20-11e6-94f3-3cbb9a6dfbce.gif)
+ 
+ - "on-the-fly" linters
+  - ast (it validates the AST:) it's only usefull if autocompilation is disabled)
+  - compiler (compiler errors and warnings must be fixed ASAP)
+  - xref (it validates the runtime code for unreachable module/functions)
+  
+ ![linters](https://cloud.githubusercontent.com/assets/486807/20470386/2c357f46-afb9-11e6-8661-4ecd6078ef76.gif)
 
-![image](/images/src.png?raw=true)
+ - app integration
+  - iex shell(stdio is piped to a separated buffer)
+  - multiple applications support
+
+ - "live" evaluation
+
+ - jump to definition
+
+ - open online documentation
+  - for elixir packages using hexdocs.pm(respects the package version)
+  - for Elixir core
+  - for erlang stdlib
+
+ - core components are editor agnostic
 
 ## Development 
 ### Architecture
