@@ -71,10 +71,24 @@ defmodule Ilexir.Linters.XrefSpec do
        result = Ilexir.Linter.Xref.run(@file_path, "")
 
        expect(result).to be_list
-       expect(length(result)).to be(length(@lines))
+       expect(result).to have_length(length(@lines))
 
        issue = hd(result)
        expect(issue.text).to match("function Enum.any?/3 is unreachable.")
+     end
+  end
+
+  context "short-circuit erlang andalso/orelse functions" do
+    @dispatches_with_special_funcs {%{},%{:erlang => %{{:andalso, 2} => [1]}}}
+
+     before do
+       allow(XrefServer).to accept(:get_dispatches, fn(_mod) -> @dispatches_with_special_funcs end)
+     end
+
+     it "returns no errors" do
+       result = Ilexir.Linter.Xref.run(@file_path, "")
+
+       expect(result).to have_length(0)
      end
   end
 end

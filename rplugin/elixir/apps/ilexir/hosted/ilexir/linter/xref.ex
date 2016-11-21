@@ -17,13 +17,19 @@ defmodule Ilexir.Linter.Xref do
       Enum.find_value calls, fn ({{function, arity}, lines})->
         case Code.ensure_loaded(mod) do
           {:module, ^mod} ->
-            !function_exported?(mod, function, arity) && {mod, {function, arity}, lines}
+            !function_exported?(mod, function, arity)
+              && !special_erlang_func?(mod, function, arity)
+                && {mod, {function, arity}, lines}
           _ ->
             {mod, lines}
         end
       end
     end) |> Enum.filter(&(&1 != nil))
   end
+
+  defp special_erlang_func?(:erlang, function, 2)
+    when function in [:andalso, :orelse], do: true
+  defp special_erlang_func?(_, _, _), do: false
 
   defp unreachable_calls_to_fix_items(calls, file) do
     Enum.flat_map(calls, &(unreachable_call_to_fix_item(&1, file)))
