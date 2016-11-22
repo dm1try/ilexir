@@ -46,17 +46,21 @@
  ![linters](https://cloud.githubusercontent.com/assets/486807/20470386/2c357f46-afb9-11e6-8661-4ecd6078ef76.gif)
 
  - app integration
-  - iex shell(stdio is piped to a separated buffer)
-  - multiple applications support
-
+  - multiple applications support (with different enviroments)
+  - iex shell (stdio is piped to a separated buffer)
+  
+ ![apps](https://cloud.githubusercontent.com/assets/486807/20512240/394f54c8-b08f-11e6-84ec-cdc19020d2f9.gif)
+  
  - "live" evaluation
-
+ 
+ ![eval](https://cloud.githubusercontent.com/assets/486807/20507792/19d16c1a-b06e-11e6-9fd4-ea70a2a97fa3.gif)
+ 
  - jump to definition
 
  - open online documentation
-  - for elixir packages using hexdocs.pm(respects the package version)
-  - for Elixir core
-  - for erlang stdlib
+  - for elixir packages using hexdocs.pm (respects the package version)
+  - for Elixir core (also respects the version)
+  - for erlang stdlib (does not respect OTP version, opens docs for the latest release)
 
  - core components are editor agnostic
 
