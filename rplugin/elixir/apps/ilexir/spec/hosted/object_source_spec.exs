@@ -38,6 +38,15 @@ defmodule Ilexir.ObjectSourceSpec do
     end
   end
 
+  context "the function is piped and without parenthesis" do
+    let :line, do: "|> IO.inspect"
+    let :current_column, do: 9
+
+    it "returns function with actula arity(+1)" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {IO, {:inspect, 1}}})
+    end
+  end
+
   context "with fn-> callback" do
     let :line, do: "result = Enum.any?(items, fn(item)-> 1 end)"
     let :current_column, do: 16
@@ -58,6 +67,15 @@ defmodule Ilexir.ObjectSourceSpec do
 
   context "with not closed fn-> callback" do
     let :line, do: "result = Enum.any? items, fn(item)->"
+    let :current_column, do: 16
+
+    it "returns function with arity" do
+      expect(ObjectSource.find_object(line, current_column)).to eq({:function, {Enum, {:any?, 2}}})
+    end
+  end
+
+  context "opened fn-> callback with parenthesis" do
+    let :line, do: "result = Enum.any?(items, fn(item)->"
     let :current_column, do: 16
 
     it "returns function with arity" do

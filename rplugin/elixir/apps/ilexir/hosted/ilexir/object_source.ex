@@ -100,19 +100,14 @@ defmodule Ilexir.ObjectSource do
         fetch_params(right_tokens, [], [])
     end
 
-    case :elixir_parser.parse(params_tokens) do
+    count = case :elixir_parser.parse(params_tokens) do
       {:ok, {_identifer, _, nil}} -> 0
-      {:ok, {_identifer, _, params}} ->
-        count = Enum.count(params)
-        left_tokens = Enum.slice(tokens, 0..index-1)
-
-        if piped?(left_tokens) do
-          count + 1
-        else
-          count
-        end
+      {:ok, {_identifer, _, params}} -> length(params)
       _ -> 0
     end
+
+    left_tokens = Enum.slice(tokens, 0..index-1)
+    if piped?(left_tokens), do: count + 1, else: count
   end
 
   defp fetch_params([], [last_token|_] = param_tokens)
@@ -127,9 +122,11 @@ defmodule Ilexir.ObjectSource do
 
   defp fetch_params([{token, _}|rest], param_tokens), do: fetch_params(rest, [token|param_tokens])
 
-  defp fetch_params([], _, stack) when length(stack) > 0 do
-    []
+  defp fetch_params([], [{:stab_op,_,_}|_] = param_tokens, stack) when length(stack) > 0 do
+    Enum.reverse([{:")",{0,0,0}} , {:end,{0,0,0}},{:number, {0,0,0}, 1}|param_tokens])
   end
+
+  defp fetch_params([], _, stack) when length(stack) > 0, do: []
   defp fetch_params([], param_tokens, _) do
     Enum.reverse(param_tokens)
   end
