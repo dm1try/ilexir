@@ -112,6 +112,38 @@ defmodule Ilexir.CompilerSpec do
     end
   end
 
+  context "on_definition callback", async: false do
+    let :module_name, do: OnDefenition
+    let :module_code_string do
+      """
+      defmodule #{module_name} do
+        def some_func(param) do
+          param
+        end
+      end
+      """
+    end
+    let :filename, do: "some_file.ex"
+
+    before do
+      {:ok, pid} = Compiler.start_link(subscribers: %{on_definition: [ESpec.Runner]})
+      {:shared, pid: pid}
+    end
+
+    finally do
+      GenServer.stop(shared.pid)
+    end
+
+    it "sends :on_defenition message" do
+      Compiler.compile_string(module_code_string, filename)
+
+      receive do
+        {:on_definition, {env, _kind, _name, _args, _guards, _body}} ->
+          expect(env.module).to eq(module_name)
+      after 500 -> raise "on_definition callback is not received"
+      end
+    end
+  end
   context "errors" do
     before do: Compiler.start_link
     finally do: GenServer.stop(Compiler)

@@ -30,6 +30,10 @@ defmodule Ilexir.Compiler do
     GenServer.call(__MODULE__, {:after_compile, {env, bytecode}})
   end
 
+  def __on_definition__(env, kind, name, args, guards, body) do
+    GenServer.call(__MODULE__, {:on_definition, {env, kind, name, args, guards, body}})
+  end
+
   def handle_call({:set_env, env}, _from, state) do
     state = update_env(state, env.module, env)
     {:reply, :ok, state}
@@ -45,13 +49,19 @@ defmodule Ilexir.Compiler do
     {:reply, :ok, state}
   end
 
+  def handle_call({:on_definition, def_data}, _from, %{subscribers: subscribers} = state) do
+    Enum.each subscribers[:on_definition] || [], fn(subcriber)->
+      spawn_link fn-> send subcriber, {:on_definition, def_data} end
+    end
+
+    {:reply, :ok, state}
+  end
+
   def handle_call({:get_env, module}, _from, state) do
     {:reply, get_env(state, module), state}
   end
 
   def handle_call({:compile_string, string, file}, from, %{subscribers: subscribers} = state) do
-    after_compile_callback_ast = quote do @after_compile unquote(__MODULE__) end
-
     ast = try do
       Code.string_to_quoted!(string)
     rescue
@@ -62,7 +72,12 @@ defmodule Ilexir.Compiler do
       spawn_link fn-> send subcriber, {:on_ast_processing, {file, ast}} end
     end
 
-    ast = Macro.postwalk(ast, &inject_after_compile_callback(&1, after_compile_callback_ast))
+    callbacks_ast = quote do
+      @after_compile unquote(__MODULE__)
+      @on_definition unquote(__MODULE__)
+    end
+
+    ast = Macro.postwalk(ast, &inject_callback_to_ast(&1, [callbacks_ast]))
 
     spawn_link fn->
       old_ignore_module_opt = Code.compiler_options[:ignore_module_conflict]
@@ -80,17 +95,17 @@ defmodule Ilexir.Compiler do
     {:noreply, state}
   end
 
-  defp inject_after_compile_callback({:defmodule, a, [b, [do: {:__block__, opt, inner_items}]]} = _module_ast, callback_ast) do
-    new_block = {:__block__, opt, inner_items ++ [[callback_ast]]}
+  defp inject_callback_to_ast({:defmodule, a, [b, [do: {:__block__, opt, inner_items}]]} = _module_ast, callback_ast) do
+    new_block = {:__block__, opt, [[callback_ast]] ++ inner_items }
     {:defmodule, a, [b, [do: new_block]]}
   end
 
-  defp inject_after_compile_callback({:defmodule, a, [b, [do: not_a_block]]} = _module_ast, callback_ast) do
-    new_block = {:__block__, [], [not_a_block] ++ [callback_ast]}
+  defp inject_callback_to_ast({:defmodule, a, [b, [do: not_a_block]]} = _module_ast, callback_ast) do
+    new_block = {:__block__, [], [callback_ast] ++ [not_a_block] }
     {:defmodule, a, [b, [do: new_block]]}
   end
 
-  defp inject_after_compile_callback(block, _callback_ast), do: block
+  defp inject_callback_to_ast(block, _callback_ast), do: block
 
   defp get_env(state, module) do
     get_in(state, [:modules, "#{module}", :env])
