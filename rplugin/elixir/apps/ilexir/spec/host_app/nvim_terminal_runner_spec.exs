@@ -6,7 +6,7 @@ defmodule Ilexir.HostApp.NvimTerminalRunnerSpec do
   @nvim_session_name TerminalRunnerTest
 
   let :mix_app, do: App.build(Path.expand("spec/fixtures/dummy_mix_app"))
-  let :nvim_session, do: @nvim_session_name
+  let :options, do: [nvim_session: @nvim_session_name]
 
   before do
     {:ok, pid} = NVim.Session.Embed.start_link(session_name: @nvim_session_name)
@@ -17,13 +17,18 @@ defmodule Ilexir.HostApp.NvimTerminalRunnerSpec do
     NVim.Session.Embed.stop(shared.embed_pid)
   end
 
-  it "starts node in terminal window" do
-    expect(
-      Runner.start_app(mix_app, nvim_session: @nvim_session_name)
-    ).to eq({:ok, mix_app})
-    expect_it_marks_nvim_window
+  it "starts the app" do
+    expect(Runner.start_app(mix_app, options())).to eq({:ok, mix_app})
+  end
 
-    # expect_it_actually_run_node
+  context "with term option" do
+    let :options, do: [nvim_session: @nvim_session_name, term: true]
+
+    it "starts the app in terminal window" do
+      expect(Runner.start_app(mix_app, options())).to eq({:ok, mix_app})
+      expect_it_marks_nvim_window
+      # expect_it_actually_run_node
+    end
   end
 
   defp expect_it_marks_nvim_window do
