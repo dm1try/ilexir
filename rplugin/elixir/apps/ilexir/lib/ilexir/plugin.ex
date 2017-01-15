@@ -174,6 +174,15 @@ defmodule Ilexir.Plugin do
     end
   end
 
+  on_event :vim_enter do
+    with {:ok, 1} <- nvim_get_var("ilexir_autostart_app"),
+         {:ok, current_dir} <- nvim_call_function("getcwd", []),
+         true <- File.exists?(Path.join(current_dir, "mix.exs")) do
+
+      start_app("./", [])
+    end
+  end
+
   @delay_time 300 # ms
   defp delayed_lint(timer_ref) do
     :timer.cancel(timer_ref)
