@@ -59,7 +59,7 @@ defmodule Ilexir.HostApp do
     exec_line = "cd #{path} && #{mix_env} elixir --no-halt --sname #{remote_name}"
 
     if mix_app? do
-      script = Keyword.get(args, :script, "app.start")
+      script = Keyword.get(args, :script, "run -e 'Application.load(Mix.Project.config[:app])' --no-start")
       "#{exec_line} -S mix #{script}"
     else
       exec_line

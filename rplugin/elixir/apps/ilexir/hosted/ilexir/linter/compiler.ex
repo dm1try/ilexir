@@ -18,7 +18,7 @@ defmodule Ilexir.Linter.Compiler do
   def compiler_warnings_to_items(warnings, file) do
     Enum.map(warnings, fn(warning)->
       compiler_warning_to_item(warning,file)
-    end)
+    end) |> filter_warnings
   end
 
   def compiler_warning_to_item(%{text: text, line: line} = _warning, file) do
@@ -39,5 +39,11 @@ defmodule Ilexir.Linter.Compiler do
 
   def compiler_error_to_item(error, file) do
     %Item{file: file, text: "#{inspect error}", type: :error, location: %Item.Location{line: 1}}
+  end
+
+  defp filter_warnings(warnings) do
+    Enum.reject warnings, fn(%{text: text})->
+      String.contains?(text, "been consolidated")
+    end
   end
 end

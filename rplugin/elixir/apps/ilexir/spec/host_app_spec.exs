@@ -20,8 +20,8 @@ defmodule Ilexir.HostAppSpec do
     context "exec path for mix app" do
       let :app, do: HostApp.build(app_path, env: :test)
 
-      it "includes mix command for start the application" do
-        expect(app.exec_path).to have("-S mix app.start")
+      it "includes default mix command for start the application" do
+        expect(app.exec_path).to have("-S mix run")
       end
 
       it "includes MIX_ENV" do
