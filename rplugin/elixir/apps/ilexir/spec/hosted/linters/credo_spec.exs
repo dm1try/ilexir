@@ -1,5 +1,5 @@
 defmodule Ilexir.Linters.CredoSpec do
-  use ESpec
+  use ESpec, skip: 'waiting for rhe re-implementation'
 
   before do
     {:ok, pid} = Credo.start [], []
