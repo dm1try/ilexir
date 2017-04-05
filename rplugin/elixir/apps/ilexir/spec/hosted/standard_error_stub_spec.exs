@@ -16,7 +16,7 @@ defmodule Ilexir.StandardErrorStubSpec do
     result = with_stab_standard_error fn-> IO.warn("some warning here") end
 
     expect(result).to eq(:ok)
-    expect(warnings).not_to be_empty
-    expect(hd(warnings).text).to eq "some warning here"
+    expect(warnings()).not_to be_empty()
+    expect(hd(warnings()).text).to eq "some warning here"
   end
 end

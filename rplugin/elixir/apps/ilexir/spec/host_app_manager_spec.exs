@@ -29,10 +29,10 @@ defmodule Ilexir.HostAppManagerSpec do
 
     context "with caller callback" do
       let :client_callback, do: fn(app)-> send ESpec.Runner, app.status end
-      let :start_opts, do:  [callback: client_callback] ++ shared.runner_opts
+      let :start_opts, do:  [callback: client_callback()] ++ shared.runner_opts
 
       it "calls callbacks when app ready or fully stopped" do
-        {status, app} = Manager.start_app(shared.app_path, start_opts)
+        {status, app} = Manager.start_app(shared.app_path, start_opts())
 
         expect(status).to eq(:ok)
 
@@ -77,7 +77,7 @@ defmodule Ilexir.HostAppManagerSpec do
     end
 
     it "looks up for a suitable running host for a provided file" do
-      {status, app} = Manager.lookup(file_path)
+      {status, app} = Manager.lookup(file_path())
       expect(status).to be(:ok)
       expect(app.status).to be(:running)
     end

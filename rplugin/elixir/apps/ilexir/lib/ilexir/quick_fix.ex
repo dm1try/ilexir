@@ -64,7 +64,7 @@ defmodule Ilexir.QuickFix do
   end
 
   defp do_draw(items) do
-    case vim_get_current_buffer do
+    case vim_get_current_buffer() do
       {:ok, active_buffer} ->
 
         buffer_clear_highlight(active_buffer, -1, 0, -1)

@@ -18,15 +18,15 @@ defmodule Ilexir.HostApp.NvimTerminalRunnerSpec do
   end
 
   it "starts the app" do
-    expect(Runner.start_app(mix_app, options())).to eq({:ok, mix_app})
+    expect(Runner.start_app(mix_app(), options())).to eq({:ok, mix_app()})
   end
 
   context "with term option" do
     let :options, do: [nvim_session: @nvim_session_name, term: true]
 
     it "starts the app in terminal window" do
-      expect(Runner.start_app(mix_app, options())).to eq({:ok, mix_app})
-      expect_it_marks_nvim_window
+      expect(Runner.start_app(mix_app(), options())).to eq({:ok, mix_app()})
+      expect_it_marks_nvim_window()
       # expect_it_actually_run_node
     end
   end
@@ -43,6 +43,6 @@ defmodule Ilexir.HostApp.NvimTerminalRunnerSpec do
       end
     end)
 
-    expect(var).to eq(to_string(mix_app.remote_name))
+    expect(var).to eq(to_string(mix_app().remote_name))
   end
 end

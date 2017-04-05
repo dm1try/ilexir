@@ -21,15 +21,15 @@ defmodule Ilexir.EvaluatorSpec do
     let :module_name, do: MyModule
 
     let :some_code, do: ~s"""
-    defmodule #{module_name} do
+    defmodule #{module_name()} do
       def some_func do
-        #{code_part}
+        #{code_part()}
       end
     end
     """
 
     it "evaluates string" do
-      expect(Evaluator.eval_string(code_part)).to eq({:ok, 3})
+      expect(Evaluator.eval_string(code_part())).to eq({:ok, 3})
     end
 
     context "enviroment is provided" do
@@ -42,11 +42,11 @@ defmodule Ilexir.EvaluatorSpec do
       let :module_name, do: ModuleWithAlias
 
       let :some_code, do: ~s"""
-      defmodule #{module_name} do
+      defmodule #{module_name()} do
         alias Enum, as: E
 
         def some_func do
-          #{code_part}
+          #{code_part()}
         end
 
         def env do
@@ -56,11 +56,11 @@ defmodule Ilexir.EvaluatorSpec do
       """
 
       before do
-        Code.compile_string(some_code)
+        Code.compile_string(some_code())
       end
 
       it "respects env values on the evaluating" do
-        expect(Evaluator.eval_string(code_part, env: ModuleWithAlias.env)).to eq({:ok, false})
+        expect(Evaluator.eval_string(code_part(), env: ModuleWithAlias.env)).to eq({:ok, false})
       end
     end
 
@@ -80,21 +80,21 @@ defmodule Ilexir.EvaluatorSpec do
       let :module_name, do: MultipleEvals
 
       let :some_code, do: ~s"""
-      defmodule #{module_name} do
+      defmodule #{module_name()} do
         def some_func do
-          #{first_code_part}
-          #{second_code_part}
+          #{first_code_part()}
+          #{second_code_part()}
         end
       end
       """
 
       before do
-        Code.compile_string(some_code)
-        Evaluator.eval_string(first_code_part)
+        Code.compile_string(some_code())
+        Evaluator.eval_string(first_code_part())
       end
 
       it "pre-saves and reuse evaluated bindings between evaluations" do
-        expect(Evaluator.eval_string(second_code_part)).to eq({:ok, true})
+        expect(Evaluator.eval_string(second_code_part())).to eq({:ok, true})
       end
     end
 
@@ -108,20 +108,20 @@ defmodule Ilexir.EvaluatorSpec do
       let :module_name, do: EvalWithUndefined
 
       let :some_code, do: ~s"""
-      defmodule #{module_name} do
+      defmodule #{module_name()} do
         def some_func do
           b = 3
-          #{code_part}
+          #{code_part()}
         end
       end
       """
 
       before do
-        Code.compile_string(some_code)
+        Code.compile_string(some_code())
       end
 
       it "returns undefined var name" do
-        expect(Evaluator.eval_string(code_part)).to eq({:undefined, "b"})
+        expect(Evaluator.eval_string(code_part())).to eq({:undefined, "b"})
       end
     end
 

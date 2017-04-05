@@ -45,7 +45,7 @@ defmodule Ilexir.ModuleLocationSpec do
   end
 
   it "builds location tree based on AST and searches for modules by providing line number" do
-    tree =  ModuleLocation.to_location_tree(some_code_ast)
+    tree =  ModuleLocation.to_location_tree(some_code_ast())
 
     expect(ModuleLocation.find_module(tree, 1)).to eq(RootModule)
     expect(ModuleLocation.find_module(tree, 7)).to eq(RootModule)

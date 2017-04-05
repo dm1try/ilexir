@@ -19,13 +19,13 @@ defmodule Ilexir.Linters.CredoSpec do
   end
 
   it "returns QuickFix items for founded credo issues" do
-    result = Ilexir.Linter.Credo.run(file_name, file_content)
+    result = Ilexir.Linter.Credo.run(file_name(), file_content())
 
-    expect(result).to be_list
+    expect(result).to be_list()
 
     issue = hd(result)
 
-    expect(issue.file).to eq(file_name)
+    expect(issue.file).to eq(file_name())
     expect(issue.type).to eq(:warning)
     expect(issue.text).to match("moduledoc tag.")
   end

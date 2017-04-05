@@ -91,7 +91,7 @@ defmodule Ilexir.Plugin do
   # Compiler interface
 
   command ilexir_compile do
-     with {:ok, buffer} <- vim_get_current_buffer,
+     with {:ok, buffer} <- vim_get_current_buffer(),
          {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- lookup_current_app(state) do
@@ -112,7 +112,7 @@ defmodule Ilexir.Plugin do
   # Evaluator
 
   command ilexir_eval, range: true do
-    with {:ok, buffer} <- vim_get_current_buffer,
+    with {:ok, buffer} <- vim_get_current_buffer(),
          {:ok, lines} <- nvim_buf_get_lines(buffer, range_start - 1, range_end, false),
          {:ok, app} <- lookup_current_app(state) do
 
@@ -186,7 +186,7 @@ defmodule Ilexir.Plugin do
   @delay_time 300 # ms
   defp delayed_lint(timer_ref) do
     :timer.cancel(timer_ref)
-    {:ok, timer_ref} = :timer.apply_after(@delay_time, __MODULE__, :lint, [[allow_compile: autocompile_enabled?]])
+    {:ok, timer_ref} = :timer.apply_after(@delay_time, __MODULE__, :lint, [[allow_compile: autocompile_enabled?()]])
     timer_ref
   end
 
@@ -255,7 +255,7 @@ defmodule Ilexir.Plugin do
       "getline('.')" => current_line
     }
   do
-    with {:ok, buffer} <- vim_get_current_buffer,
+    with {:ok, buffer} <- vim_get_current_buffer(),
          {:ok, app} <- lookup_current_app(state) do
 
       if find_start in [1, "1"] do
@@ -327,7 +327,7 @@ defmodule Ilexir.Plugin do
   end
 
   def lint(linter_mod) do
-    with {:ok, buffer} <- vim_get_current_buffer,
+    with {:ok, buffer} <- vim_get_current_buffer(),
          {:ok, lines} <- nvim_buf_get_lines(buffer, 0, -1, false),
          {:ok, filename} <- nvim_buf_get_name(buffer),
          {:ok, app} <- AppManager.lookup(filename) do
@@ -389,7 +389,7 @@ defmodule Ilexir.Plugin do
   end
 
   defp try_compile_buffer(buffer) do
-    if autocompile_enabled? do
+    if autocompile_enabled?() do
       case compile_buffer(buffer) do
         compiled when is_list(compiled) ->
           Logger.info "Buffer was auto compiled(in memory) by Ilexir."

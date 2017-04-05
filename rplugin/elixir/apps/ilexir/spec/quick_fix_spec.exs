@@ -25,7 +25,7 @@ defmodule Ilexir.QuickFixSpec do
   let :fix_item do
     %QuickFix.Item{
       file: Ilexir.Fixtures.test_elixir_file_path,
-      text: fix_text,
+      text: fix_text(),
       type: :warning,
       location: %QuickFix.Item.Location{
         line: 1,
@@ -36,15 +36,15 @@ defmodule Ilexir.QuickFixSpec do
   end
 
   it "fills the quickfix list and highlights errors" do
-    expect(QuickFix.update_items([fix_item])).to eq(:ok)
+    expect(QuickFix.update_items([fix_item()])).to eq(:ok)
 
     expect_qf_list_size(1)
-    expect_qf_list_have_any?(fix_text)
+    expect_qf_list_have_any?(fix_text())
     expect_error_line_is_highlighted()
   end
 
   it "clears the quickfix list and removes the highlights" do
-    QuickFix.update_items([fix_item])
+    QuickFix.update_items([fix_item()])
 
     expect(QuickFix.clear_items()).to eq(:ok)
 
@@ -53,19 +53,19 @@ defmodule Ilexir.QuickFixSpec do
   end
 
   context "items from different groups" do
-    let :another_item, do: %{fix_item | text: "another fix"}
-    let :another_item2, do: %{fix_item | text: "another fix 2"}
+    let :another_item, do: %{fix_item() | text: "another fix"}
+    let :another_item2, do: %{fix_item() | text: "another fix 2"}
 
     it "updates only specific group" do
-      QuickFix.update_items([fix_item], :first_group)
-      QuickFix.update_items([another_item, another_item2], :second_group)
+      QuickFix.update_items([fix_item()], :first_group)
+      QuickFix.update_items([another_item(), another_item2()], :second_group)
 
       expect_qf_list_size(3)
 
       QuickFix.update_items([], :second_group)
 
       expect_qf_list_size(1)
-      expect_qf_list_have_any?(fix_text)
+      expect_qf_list_have_any?(fix_text())
     end
   end
 
@@ -84,12 +84,12 @@ defmodule Ilexir.QuickFixSpec do
   end
 
   defp expect_error_line_is_highlighted do
-    {:ok, attr} = vim_call_function("screenattr", [error_line_number,8])
+    {:ok, attr} = vim_call_function("screenattr", [error_line_number(),8])
     expect(attr).not_to eq(0)
   end
 
   defp expect_error_line_is_not_highlighted do
-    {:ok, attr} = vim_call_function("screenattr", [error_line_number,8])
+    {:ok, attr} = vim_call_function("screenattr", [error_line_number(),8])
     expect(attr).to eq(0)
   end
 end

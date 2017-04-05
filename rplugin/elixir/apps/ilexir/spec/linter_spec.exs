@@ -18,7 +18,7 @@ defmodule Ilexir.LinterSpec do
 
     before do
       HostAppManager.start_app(Ilexir.Fixtures.test_elixir_mix_project_path,
-                               runner_id: runner_id,
+                               runner_id: runner_id(),
                                callback: fn(app)-> send ESpec.Runner, {:started, app} end)
 
       app = receive do {:started, app} -> app
@@ -29,7 +29,7 @@ defmodule Ilexir.LinterSpec do
     end
 
     finally do
-      HostAppManager.stop_app(shared.app, runner_id: runner_id)
+      HostAppManager.stop_app(shared.app, runner_id: runner_id())
       :ok
     end
 

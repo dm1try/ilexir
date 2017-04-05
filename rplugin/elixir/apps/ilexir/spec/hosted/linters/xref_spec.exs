@@ -28,7 +28,7 @@ defmodule Ilexir.Linters.XrefSpec do
      it "returns fix item for unreachable mod" do
        result = Ilexir.Linter.Xref.run(@file_path, "")
 
-       expect(result).to be_list
+       expect(result).to be_list()
 
        issue = hd(result)
 
@@ -49,7 +49,7 @@ defmodule Ilexir.Linters.XrefSpec do
      it "returns fix item for unreachable func" do
        result = Ilexir.Linter.Xref.run(@file_path, "")
 
-       expect(result).to be_list
+       expect(result).to be_list()
 
        issue = hd(result)
 
@@ -70,7 +70,7 @@ defmodule Ilexir.Linters.XrefSpec do
      it "returns fix item for unreachable func" do
        result = Ilexir.Linter.Xref.run(@file_path, "")
 
-       expect(result).to be_list
+       expect(result).to be_list()
        expect(result).to have_length(length(@lines))
 
        issue = hd(result)

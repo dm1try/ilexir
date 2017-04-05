@@ -16,13 +16,13 @@ defmodule Ilexir.ModuleLocation.ServerSpec do
     let :module_name, do: TestLocationModule
     let :ast do
       Code.string_to_quoted! """
-      defmodule #{module_name} do
+      defmodule #{module_name()} do
       end
       """
     end
 
     before do
-      send shared.pid, {:on_ast_processing, {"some_file.ex", ast}}
+      send shared.pid, {:on_ast_processing, {"some_file.ex", ast()}}
     end
 
     it "finds suitable module" do

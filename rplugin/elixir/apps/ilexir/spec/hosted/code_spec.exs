@@ -66,17 +66,17 @@ defmodule Ilexir.CodeSpec do
       end
 
       it "finds module source line in object code" do
-        expect(Code.find_source_line({:module, Ilexir.CodeSpec.FuncDefs}, code)).to eq(current_line + 2)
+        expect(Code.find_source_line({:module, Ilexir.CodeSpec.FuncDefs}, code())).to eq(current_line() + 2)
       end
 
       it "finds functions source line in object code" do
-        expect(Code.find_source_line({:function, {:func, 1}}, code)).to eq(current_line + 4)
-        expect(Code.find_source_line({:function, {:func2, 0}}, code)).to eq(current_line + 7)
-        expect(Code.find_source_line({:function, {:macro1, 0}}, code)).to eq(current_line + 10)
+        expect(Code.find_source_line({:function, {:func, 1}}, code())).to eq(current_line() + 4)
+        expect(Code.find_source_line({:function, {:func2, 0}}, code())).to eq(current_line() + 7)
+        expect(Code.find_source_line({:function, {:macro1, 0}}, code())).to eq(current_line() + 10)
       end
 
       it "finds functions without provided arity" do
-        expect(Code.find_source_line({:function, :func2}, code)).to eq(current_line + 7)
+        expect(Code.find_source_line({:function, :func2}, code())).to eq(current_line() + 7)
       end
     end
   end

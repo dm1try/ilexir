@@ -9,8 +9,8 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
   let :line, do: ""
   let :base, do: ""
   let :current_column, do: 0
-  let :line_after_finding, do: (if base !="", do: String.replace(line, base, ""), else: line)
-  let :current_column_after_finding, do: current_column - String.length(base)
+  let :line_after_finding, do: (if base() !="", do: String.replace(line(), base(), ""), else: line())
+  let :current_column_after_finding, do: current_column() - String.length(base())
 
   before do
     {:ok, pid} = CodeServer.start_link
@@ -26,11 +26,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
     let :current_column, do: 3
 
     it do: expect(
-      Autocomplete.find_complete_position(line, current_column)
-    ).to eq(current_column_after_finding)
+      Autocomplete.find_complete_position(line(), current_column())
+    ).to eq(current_column_after_finding())
 
     it "expands available Elixir modules" do
-      results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+      results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
 
       expect(results).to have_completed_item("Kernel")
     end
@@ -42,11 +42,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
     let :current_column, do: 5
 
     it do: expect(
-      Autocomplete.find_complete_position(line, current_column)
-    ).to eq(current_column_after_finding)
+      Autocomplete.find_complete_position(line(), current_column())
+    ).to eq(current_column_after_finding())
 
     it "expands suitable modules" do
-      results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+      results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
 
       expect(results).to have_completed_item("Enum")
       expect(results).to have_completed_item("Enumerable")
@@ -60,11 +60,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 9
 
       it do: expect(
-        Autocomplete.find_complete_position(line, current_column)
-      ).to eq(current_column_after_finding)
+        Autocomplete.find_complete_position(line(), current_column())
+      ).to eq(current_column_after_finding())
 
       it do: expect(
-        Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+        Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
       ).to have_completed_item("any?")
 
       context "with empty base" do
@@ -73,16 +73,16 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 7
 
         it do: expect(
-          Autocomplete.find_complete_position(line, current_column)
-        ).to eq(current_column_after_finding)
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
 
         it "expands available functions" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
           expect(results).to have_completed_item("all?")
         end
 
         it "expands nested modules" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
           expect(results).to have_completed_item("EmptyError")
         end
       end
@@ -93,11 +93,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 9
 
         it do: expect(
-          Autocomplete.find_complete_position(line, current_column)
-        ).to eq(current_column_after_finding)
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
 
         it "expands available nested modules" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
 
           expect(results).to have_completed_item("Chars")
         end
@@ -109,7 +109,7 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 18
 
         it "does not expand internal functions" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
           expect(results).to_not have_completed_item("__struct__")
         end
       end
@@ -120,11 +120,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 8
 
         it do: expect(
-          Autocomplete.find_complete_position(line, current_column)
-        ).to eq(current_column_after_finding)
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
 
         it "expands available nested modules" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
 
           expect(results).to have_completed_item("bnot")
         end
@@ -137,11 +137,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 7
 
       it do: expect(
-        Autocomplete.find_complete_position(line, current_column)
-      ).to eq(current_column_after_finding)
+        Autocomplete.find_complete_position(line(), current_column())
+      ).to eq(current_column_after_finding())
 
       it do: expect(
-        Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+        Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
       ).to have_completed_item("erlang")
 
       context "with starting colon symbol" do
@@ -150,7 +150,7 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 2
 
         it do: expect(
-          Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
         ).to have_completed_item("timer")
       end
     end
@@ -161,11 +161,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 11
 
       it do: expect(
-        Autocomplete.find_complete_position(line, current_column)
-      ).to eq(current_column_after_finding)
+        Autocomplete.find_complete_position(line(), current_column())
+      ).to eq(current_column_after_finding())
 
       it "expands available" do
-        results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+        results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
         expect(results).to have_completed_item("sleep")
       end
 
@@ -175,11 +175,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 9
 
         it do: expect(
-          Autocomplete.find_complete_position(line, current_column)
-        ).to eq(current_column_after_finding)
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
 
         it "expands available" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
           expect(results).to have_completed_item("sleep")
         end
       end
@@ -190,11 +190,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :current_column, do: 21
 
         it do: expect(
-          Autocomplete.find_complete_position(line, current_column)
-        ).to eq(current_column_after_finding)
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
 
         it "includes params" do
-          [%{abbr: abbr}] = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
+          [%{abbr: abbr}] = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
           expect(abbr).to eq("atom_to_binary(atom, encoding)")
         end
       end
@@ -206,12 +206,12 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         let :expected_function_heads, do: 14
 
         it do: expect(
-          Autocomplete.find_complete_position(line, current_column)
-        ).to eq(current_column_after_finding)
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
 
         it "includes all available functions heads" do
-          results = Autocomplete.expand(line_after_finding, current_column_after_finding, base)
-          expect(results).to have_length(expected_function_heads)
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
+          expect(results).to have_length(expected_function_heads())
         end
       end
     end
@@ -241,18 +241,18 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
     let :current_column, do: 2
 
     it do: expect(
-      Autocomplete.find_complete_position(line, current_column)
-    ).to eq(current_column_after_finding)
+      Autocomplete.find_complete_position(line(), current_column())
+    ).to eq(current_column_after_finding())
 
     it "expands imported functions and macros" do
-      results = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+      results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base(), env: env())
 
       expect(results).to have_completed_item("duplicate")
       expect(results).to have_completed_item("warn")
     end
 
     it "expands aliased modules" do
-      results = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+      results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base(), env: env())
 
       expect(results).to have_completed_item("En")
       expect(results).to have_completed_item("MyTimer")
@@ -264,7 +264,7 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 0
 
       it "includes original module" do
-        [%{type: type}] = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+        [%{type: type}] = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base(), env: env())
         expect(type).to have(":timer")
       end
     end
@@ -275,7 +275,7 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 8
 
       it "expands aliased modules" do
-        results = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+        results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base(), env: env())
         expect(results).to have_completed_item("MyTimer")
         expect(results).not_to have_completed_item("En")
       end
@@ -287,11 +287,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 7
 
       it do: expect(
-        Autocomplete.find_complete_position(line, current_column)
-      ).to eq(current_column_after_finding)
+        Autocomplete.find_complete_position(line(), current_column())
+      ).to eq(current_column_after_finding())
 
       it "expands imported functions and macros" do
-        results = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+        results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base(), env: env())
 
         expect(results).to have_completed_item("any?")
       end
@@ -303,11 +303,11 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
       let :current_column, do: 14
 
       it do: expect(
-        Autocomplete.find_complete_position(line, current_column)
-      ).to eq(current_column_after_finding)
+        Autocomplete.find_complete_position(line(), current_column())
+      ).to eq(current_column_after_finding())
 
       it "expands imported functions and macros" do
-        results = Autocomplete.expand(line_after_finding, current_column_after_finding, base, env: env)
+        results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base(), env: env())
 
         expect(results).to have_completed_item("sleep")
       end

@@ -43,7 +43,7 @@ defmodule Ilexir.Code.ServerSpec do
     end
 
     it "allows add modules in runtime" do
-      CodeServer.add_module({Hello, obj_code, "test_file.ex"})
+      CodeServer.add_module({Hello, obj_code(), "test_file.ex"})
 
       modules = CodeServer.get_modules()
 
