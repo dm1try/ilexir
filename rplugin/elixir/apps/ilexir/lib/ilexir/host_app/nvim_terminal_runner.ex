@@ -24,7 +24,7 @@ defmodule Ilexir.HostApp.NvimTerminalRunner do
   defp run_in_job(nvim_session, shell_command) do
     case nvim_session.nvim_call_function("jobstart", [shell_command]) do
       {:ok, _} -> Logger.info("running #{shell_command}")
-      error -> Logger.error("problem with running: #{shell_command}")
+      error -> Logger.error("problem with running: #{shell_command} #{inspect error}")
     end
   end
 
