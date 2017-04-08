@@ -292,7 +292,7 @@ defmodule Ilexir.Plugin do
     {:ok, current_dir} = nvim_call_function("getcwd", [])
     path = Path.expand(path, current_dir)
 
-    case AppManager.start_app(path, args ++ [callback: &start_callback/1]) do
+    case AppManager.start_app(path, args ++ [callback: &handle_app_callback/1]) do
       {:ok, %{name: name, env: env, id: id}} ->
         echo ~s[Application "#{name}(#{env})" is loading...]
         id
@@ -313,7 +313,7 @@ defmodule Ilexir.Plugin do
     AppManager.get_app(app_id)
   end
 
-  def start_callback(%{status: status, name: name, env: env} = _app) do
+  def handle_app_callback(%{status: status, name: name, env: env} = _app) do
     prefix = ~s[Application "#{name}(#{env})" ]
 
     postfix = case status do
