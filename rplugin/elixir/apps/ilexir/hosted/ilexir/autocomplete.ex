@@ -170,10 +170,18 @@ defmodule Ilexir.Autocomplete.OmniFunc do
   end
 
   defp expand_erlang_functions(mod, expression) do
+    mod_exports = module_exports(mod)
     with specs when is_list(specs) <- Kernel.Typespec.beam_specs(mod) do
       Enum.reduce specs, [], fn
-        {{func, _arity},_} = spec_data, result ->
-          if match_expression?(func, expression) do
+        {{func, arity},_} = spec_data, result ->
+          if match_expression?(func, expression) && {func, arity} in mod_exports do
+            erlang_func_to_complete_items(spec_data) ++ result
+          else
+            result
+          end
+        {{^mod, func, arity}, types}, result ->
+          if match_expression?(func, expression) && {func, arity} in mod_exports do
+            spec_data = {{func, arity}, types}
             erlang_func_to_complete_items(spec_data) ++ result
           else
             result

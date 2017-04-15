@@ -184,6 +184,21 @@ defmodule Ilexir.Autocomplete.OmniFuncSpec do
         end
       end
 
+      context "erlang.decode_packet" do
+        let :line, do: ":erlang."
+        let :base, do: ""
+        let :current_column, do: 8
+
+        it do: expect(
+          Autocomplete.find_complete_position(line(), current_column())
+        ).to eq(current_column_after_finding())
+
+        it "expands available" do
+          results = Autocomplete.expand(line_after_finding(), current_column_after_finding(), base())
+          expect(results).to have_completed_item("decode_packet")
+        end
+      end
+
       context "abbreviation format" do
         let :line, do: ":erlang.atom_to_binar"
         let :base, do: "atom_to_binar"

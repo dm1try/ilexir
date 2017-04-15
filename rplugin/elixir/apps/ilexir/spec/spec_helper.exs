@@ -20,14 +20,13 @@ defmodule Ilexir.Test.Autocomplete do
     use ESpec.Assertions.Interface
 
     defp match(results, expected_text) do
-      result = Enum.any?(results, &(&1.text == expected_text))
+      result = Enum.any?(results, &(String.starts_with?(&1.text, expected_text)))
 
       {result, result}
     end
 
     defp success_message(results, text, _result, positive) do
       to = if positive, do: "is", else: "is not"
-      Enum.any?(results, &(&1.text == "timer"))
       "`#{inspect results}` #{to} include the item with #{text}."
     end
 
