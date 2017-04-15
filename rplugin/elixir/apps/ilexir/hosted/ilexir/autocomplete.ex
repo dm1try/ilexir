@@ -283,8 +283,11 @@ defmodule Ilexir.Autocomplete.OmniFunc do
   defp item_from_func_doc_data({{funcname, arity},_, type, quoted_params, desc} = _doc_data) do
     params = quoted_params |> Enum.take(arity) |> Macro.to_string |> String.slice(1..-2)
 
+    text = Atom.to_string(funcname)
+    postfix = if arity == 0, do: "()", else: "("
+
     %CompletedItem{
-      text: Atom.to_string(funcname),
+      text: "#{text}#{postfix}",
       abbr: "#{funcname}(#{params})",
       type: Atom.to_string(type),
       short_desc: short_desc(desc)
