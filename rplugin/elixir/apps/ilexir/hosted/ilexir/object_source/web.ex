@@ -3,25 +3,16 @@ defmodule Ilexir.ObjectSource.Web do
   alias Ilexir.ObjectSource, as: OS
   import Ilexir.Code.Info, only: [compile_info: 1]
 
-  @elixir_docs_base_url "http://elixir-lang.org/docs"
   @erlang_docs_base_url "http://erlang.org/doc/man"
 
   @spec docs_url(OS.source_object) :: String.t | nil
   @doc "Finds online docs for the given object"
   def docs_url({:module, mod}) do
-    with {type, app} <- find_mod_app(mod),
+    with {_type, app} <- find_mod_app(mod),
          version when not is_nil(version) <- app_version(app) do
-
-      mod_name = inspect(mod)
-
-      case type do
-        :package ->
-          hex_docs_base_url = Hex.Utils.hexdocs_url(app, version)
-          "#{hex_docs_base_url}/#{mod_name}.html"
-        :core ->
-          version_without_patch = String.replace(version, ~r/\.\d+\z/, "")
-          "#{@elixir_docs_base_url}/v#{version_without_patch}/#{app}/#{mod_name}.html"
-      end
+           mod_name = inspect(mod)
+           hex_docs_base_url = Hex.Utils.hexdocs_url(app, version)
+           "#{hex_docs_base_url}/#{mod_name}.html"
     end
   end
 
@@ -61,12 +52,9 @@ defmodule Ilexir.ObjectSource.Web do
   defp find_mod_app(mod) do
     source = mod_source(mod)
 
-    case Regex.run(~r/deps\/(\w+)\/lib/, source) do
-      [_, app_name] -> {:package, String.to_atom(app_name)}
-      _ -> case Regex.run(~r/lib\/(\w+)\/lib/, source) do
-        [_, core_app_name] -> {:core, String.to_atom(core_app_name)}
-        _ -> nil
-      end
+    case Regex.run(~r/(deps|lib)\/(\w+)\/lib/, source) do
+      [_, _, app_name] -> {:package, String.to_atom(app_name)}
+      _ -> nil
     end
   end
 

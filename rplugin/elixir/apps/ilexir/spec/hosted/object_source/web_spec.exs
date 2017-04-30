@@ -5,11 +5,11 @@ defmodule Ilexir.ObjectSource.WebSpec do
   context "elixir core docs" do
     let :source, do: {:module, Enum}
 
-    let :elixir_version, do: "1.3"
-    let :expected_url, do: "http://elixir-lang.org/docs/v#{elixir_version()}/elixir/Enum.html"
+    let :elixir_version, do: '1.4.2'
+    let :expected_url, do: "https://hexdocs.pm/elixir/#{elixir_version()}/Enum.html"
 
     before do
-      allow(Application).to accept(:spec, fn(:elixir, :vsn)-> '1.3.4' end)
+      allow(Application).to accept(:spec, fn(:elixir, :vsn)-> elixir_version() end)
       :ok
     end
 
@@ -19,7 +19,7 @@ defmodule Ilexir.ObjectSource.WebSpec do
 
     context "function docs" do
       let :source, do: {:function, {Enum, {:any, 2}}}
-      let :expected_url, do: "http://elixir-lang.org/docs/v#{elixir_version()}/elixir/Enum.html#any/2"
+      let :expected_url, do: "https://hexdocs.pm/elixir/#{elixir_version()}/Enum.html#any/2"
 
       it "returns docs url for the function" do
         expect(docs_url(source())).to eq(expected_url())
