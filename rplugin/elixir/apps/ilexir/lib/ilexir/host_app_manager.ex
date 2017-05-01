@@ -26,7 +26,25 @@ defmodule Ilexir.HostAppManager do
 
     Node.start(remote_name, :shortnames)
     subscribers = Keyword.get(args, :subscribers, [])
-    {:ok, %{remote_name: remote_name, subscribers: subscribers, apps: %{}, last_app_id: 0}}
+    {:ok, %{
+      remote_name: remote_name,
+      subscribers: subscribers,
+      apps: %{},
+      autostart_apps: %{},
+      last_app_id: 0
+    }}
+  end
+
+  def autostart_apps do
+    GenServer.call(__MODULE__, :autostart_apps)
+  end
+
+  def put_autostart_path(path, args \\ []) do
+    GenServer.call(__MODULE__, {:put_autostart_path, path, args})
+  end
+
+  def try_start(file_path) do
+    GenServer.cast(__MODULE__, {:try_start, file_path})
   end
 
   def start_app(path, args \\ []) do
@@ -63,30 +81,22 @@ defmodule Ilexir.HostAppManager do
     {:reply, result, state}
   end
 
-  def handle_call({:start_app, path, args}, _from, state) do
+  def handle_call({:put_autostart_path, path, args}, _from, %{autostart_apps: autostart_apps} = state) do
+    app = App.build(path, args)
+    new_meta = Map.put(app.meta, :autostart_args, args)
+    app = %{app | meta: new_meta}
+    autostart_apps = Map.put_new(autostart_apps, path, app)
+
+    {:reply, :ok, %{state | autostart_apps: autostart_apps}}
+  end
+
+  def handle_call({:start_app, path, args}, _from, %{apps: apps, last_app_id: last_app_id} = state) do
     app = App.build(path, args)
 
-    {response, state} = if Enum.any?(state.apps, &(elem(&1, 1).remote_name == app.remote_name)) do
+    {response, state} = if Enum.any?(apps, &(elem(&1, 1).remote_name == app.remote_name)) do
       { {:error, :already_started}, state}
     else
-      app_id = state.last_app_id + 1
-      app = %{app | id: app_id}
-
-      app = if callback = Keyword.get(args, :callback) do
-        new_meta = Map.put(app.meta, :caller_callback, callback)
-        %{app | meta: new_meta}
-      else
-        app
-      end
-
-      app = case @runner.start_app(app, @default_runner_opts ++ args) do
-        {:ok, app} ->
-          :timer.send_after @fallback_timeout, {:check_node_status, app_id, @fallback_failure_count}
-          %{app | status: :loading}
-        {:error, app} ->
-          %{app | status: :failed_to_run}
-      end
-
+      %{id: app_id} = app = start_next_app(last_app_id, app, args)
       state = put_in(state, [:apps, app_id], app)
       { {:ok, app}, %{state | last_app_id: app_id} }
     end
@@ -128,6 +138,27 @@ defmodule Ilexir.HostAppManager do
 
   def handle_cast({:subscribe_on_app_load, subscriber}, state) do
     state = %{state | subscribers: state.subscribers ++ [subscriber]}
+    {:noreply, state}
+  end
+
+  def handle_cast({:try_start, file_path}, %{apps: apps, autostart_apps: autostart_apps, last_app_id: last_app_id} = state) do
+    state = case App.lookup(file_path, Map.values(apps)) do
+      %App{} = app ->
+        Logger.error("the app for #{file_path} already started: #{inspect app}")
+        state
+      _ ->
+        case App.lookup(file_path, Map.values(autostart_apps)) do
+          %App{} = app ->
+            args = Map.get(app.meta, :autostart_args)
+            %{id: app_id} = app = start_next_app(last_app_id, app, args)
+            state = put_in(state, [:apps, app_id], app)
+            %{state | last_app_id: app_id}
+          _ ->
+            Logger.error "failed start: #{inspect autostart_apps}"
+            state
+        end
+    end
+
     {:noreply, state}
   end
 
@@ -197,6 +228,26 @@ defmodule Ilexir.HostAppManager do
     end
 
     {:noreply, state}
+  end
+
+  defp start_next_app(last_app_id, app, args) do
+    app_id = last_app_id + 1
+    app = Map.put(app, :id, app_id)
+
+    app = if callback = Keyword.get(args, :callback) do
+      new_meta = Map.put(app.meta, :caller_callback, callback)
+      %{app | meta: new_meta}
+    else
+      app
+    end
+
+    case @runner.start_app(app, @default_runner_opts ++ args) do
+      {:ok, app} ->
+        :timer.send_after @fallback_timeout, {:check_node_status, app_id, @fallback_failure_count}
+        %{app | status: :loading}
+      {:error, app} ->
+        %{app | status: :failed_to_run}
+    end
   end
 
   defp notify_caller(%{meta: %{caller_callback: callback}} = app) when is_function(callback) do

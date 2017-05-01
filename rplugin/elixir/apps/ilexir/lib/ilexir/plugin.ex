@@ -179,7 +179,15 @@ defmodule Ilexir.Plugin do
          {:ok, current_dir} <- nvim_call_function("getcwd", []),
          true <- File.exists?(Path.join(current_dir, "mix.exs")) do
 
-      start_app("./", [])
+      path = Path.expand(".", current_dir)
+      AppManager.put_autostart_path(path, [callback: &handle_app_callback/1])
+    end
+  end
+
+  on_event :buf_add, [pattern: "*.{ex,exs}"] do
+    with {:ok, buffer} <- nvim_get_current_buf(),
+         {:ok, filename} <- nvim_buf_get_name(buffer) do
+      AppManager.try_start(filename)
     end
   end
 
