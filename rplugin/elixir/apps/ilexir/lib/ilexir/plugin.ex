@@ -176,13 +176,23 @@ defmodule Ilexir.Plugin do
 
   on_event :vim_enter do
     with {:ok, 1} <- nvim_get_var("ilexir_autostart_app"),
-         {:ok, current_dir} <- nvim_call_function("getcwd", []),
-         true <- File.exists?(Path.join(current_dir, "mix.exs")) do
+      {:ok, current_dir} <- nvim_call_function("getcwd", []),
+      true <- File.exists?(Path.join(current_dir, "mix.exs")) do
 
-      path = Path.expand(".", current_dir)
-      AppManager.put_autostart_path(path, [callback: &handle_app_callback/1])
-    end
+        path = Path.expand(".", current_dir)
+        if File.dir?("#{path}/apps") do
+          umbrella_apps = Path.wildcard("#{path}/apps/*")
+
+          Enum.each umbrella_apps, fn(app_path) ->
+            AppManager.put_autostart_path(app_path, [callback: &handle_app_callback/1])
+          end
+        else
+          AppManager.put_autostart_path(path,[callback: &handle_app_callback/1])
+        end
+
+      end
   end
+
 
   on_event :buf_add, [pattern: "*.{ex,exs}"] do
     with {:ok, buffer} <- nvim_get_current_buf(),
