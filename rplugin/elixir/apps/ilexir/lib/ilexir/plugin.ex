@@ -224,7 +224,13 @@ defmodule Ilexir.Plugin do
 
        case App.call(app, Ilexir.ObjectSource, :find_source, [line, current_column_number, source_opts]) do
          {:ok, {path, line}} ->
-           case nvim_command "e #{path} | :#{line}" do
+           # TODO should `nvim_buf_get_var(buffer, "mod")` work?
+           command = case nvim_command_output("echon &mod") do
+              {:ok, "0"} -> "edit"
+               _ -> "vsplit"
+           end
+
+           case nvim_command "#{command} #{path} | :#{line}" do
              {:error, error} -> echo "Unable go to path: #{path}, detail: #{inspect error}"
              _ -> :ok
            end
