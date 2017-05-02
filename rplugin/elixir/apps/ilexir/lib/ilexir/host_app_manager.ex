@@ -346,7 +346,7 @@ defmodule Ilexir.HostAppManager do
          [_loaded|_] <- App.load_hosted_file(app, "ilexir/evaluator.ex") do
 
            specs = [
-             worker(Ilexir.Code.Server, [[],[]]),
+             worker(Ilexir.Code.Server, [[elixir_source_path: @config.get("elixir_source_path")],[]]),
              worker(Ilexir.ModuleLocation.Server, [[],[]]),
              worker(Ilexir.Xref.Server,[[],[]]),
              worker(Ilexir.Compiler, [[subscribers: %{
