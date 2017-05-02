@@ -82,12 +82,20 @@ defmodule Ilexir.HostAppManager do
   end
 
   def handle_call({:put_autostart_path, path, args}, _from, %{autostart_apps: autostart_apps} = state) do
-    app = App.build(path, args)
-    new_meta = Map.put(app.meta, :autostart_args, args)
-    app = %{app | meta: new_meta}
-    autostart_apps = Map.put_new(autostart_apps, path, app)
+    paths = if File.dir?("#{path}/apps") do
+      Path.wildcard("#{path}/apps/*")
+    else
+      [path]
+    end
 
-    {:reply, :ok, %{state | autostart_apps: autostart_apps}}
+    new_apps = Enum.reduce paths, autostart_apps, fn(app_path, apps) ->
+      app = App.build(app_path, args)
+      new_meta = Map.put(app.meta, :autostart_args, args)
+      app = %{app | meta: new_meta}
+      Map.put_new(apps, app.remote_name, app)
+    end
+
+    {:reply, :ok, %{state | autostart_apps: new_apps}}
   end
 
   def handle_call({:start_app, path, args}, _from, %{apps: apps, last_app_id: last_app_id} = state) do

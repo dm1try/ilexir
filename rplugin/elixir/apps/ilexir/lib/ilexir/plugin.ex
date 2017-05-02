@@ -182,17 +182,8 @@ defmodule Ilexir.Plugin do
       true <- File.exists?(Path.join(current_dir, "mix.exs")) do
 
         path = Path.expand(".", current_dir)
-        if File.dir?("#{path}/apps") do
-          umbrella_apps = Path.wildcard("#{path}/apps/*")
-
-          Enum.each umbrella_apps, fn(app_path) ->
-            AppManager.put_autostart_path(app_path, [callback: &handle_app_callback/1])
-          end
-        else
-          AppManager.put_autostart_path(path,[callback: &handle_app_callback/1])
-        end
-
-      end
+        AppManager.put_autostart_path(path, [callback: &handle_app_callback/1])
+    end
   end
 
 
