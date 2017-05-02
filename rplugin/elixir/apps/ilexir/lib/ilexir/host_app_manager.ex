@@ -92,7 +92,15 @@ defmodule Ilexir.HostAppManager do
       app = App.build(app_path, args)
       new_meta = Map.put(app.meta, :autostart_args, args)
       app = %{app | meta: new_meta}
-      Map.put_new(apps, app.remote_name, app)
+      apps = Map.put_new(apps, app.remote_name, app)
+
+      if File.exists?("#{app_path}/test") || File.exists?("#{app_path}/spec") do
+        app_test = App.build(app_path, [env: "test"])
+        app_test = %{app_test | meta: new_meta}
+        Map.put_new(apps, app_test.remote_name, app_test)
+      else
+        apps
+      end
     end
 
     {:reply, :ok, %{state | autostart_apps: new_apps}}
