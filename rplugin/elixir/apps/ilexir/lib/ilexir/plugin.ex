@@ -38,8 +38,10 @@ defmodule Ilexir.Plugin do
   end
 
   command ilexir_running_apps do
-    apps = AppManager.running_apps()
-    vim_command "echo '#{inspect apps}'"
+    AppManager.running_apps()
+    |> Enum.map(fn(%{status: status, id: id, path: path, env: env, name: name})-> "##{id} #{name}(#{env}) - #{status} - #{path}" end)
+    |> Enum.join("\n")
+    |> echo
   end
 
   command ilexir_stop_app do
