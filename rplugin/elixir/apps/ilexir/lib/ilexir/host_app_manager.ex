@@ -159,9 +159,7 @@ defmodule Ilexir.HostAppManager do
 
   def handle_cast({:try_start, file_path}, %{apps: apps, autostart_apps: autostart_apps, last_app_id: last_app_id} = state) do
     state = case App.lookup(file_path, Map.values(apps)) do
-      %App{} = app ->
-        Logger.error("the app for #{file_path} already started: #{inspect app}")
-        state
+      %App{} -> state
       _ ->
         case App.lookup(file_path, Map.values(autostart_apps)) do
           %App{} = app ->
