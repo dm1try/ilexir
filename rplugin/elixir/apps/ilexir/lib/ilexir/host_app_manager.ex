@@ -10,6 +10,7 @@ defmodule Ilexir.HostAppManager do
 
   @runner Application.get_env(:ilexir, :host_app_runner) || Ilexir.HostApp.NvimTerminalRunner
   @default_runner_opts [nvim_session: NVim.Session]
+  @config Application.get_env(:ilexir, :user_config) || Ilexir.UserConfig.NVim
 
   require Logger
 
