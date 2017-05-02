@@ -24,7 +24,7 @@ defmodule Ilexir.ObjectSource do
   def find_source(line, current_column, opts \\ []) do
     case find_object(line, current_column, opts) do
       {type, object} when type in @supported_types ->
-        {:ok, CodeServer.get_source(object)}
+        object |> CodeServer.get_source |> source_result
       _ -> {:error, :not_implemented}
     end
   end
@@ -33,11 +33,14 @@ defmodule Ilexir.ObjectSource do
   def online_docs_url(line, current_column, opts \\ []) do
     case find_object(line, current_column, opts) do
       {type, _} = object when type in @supported_types ->
-        {:ok, docs_url(object)}
+        object |> docs_url |> source_result
       _ ->
         {:error, :not_implemented}
     end
   end
+
+  def source_result(nil), do: {:error, :not_found}
+  def source_result(result), do: {:ok, result}
 
   defp tokens(line) do
     line |> tokenized |> Enum.with_index

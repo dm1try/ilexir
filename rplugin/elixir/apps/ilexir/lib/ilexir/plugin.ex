@@ -228,7 +228,8 @@ defmodule Ilexir.Plugin do
              _ -> :ok
            end
 
-         {:error, :not_implemented} -> echo "Source not found."
+         {:error, error}
+            -> echo "Source #{inspect error} for this object"
        end
     else
       error -> warning_with_echo("Unable to evaluate lines: #{inspect error}")
@@ -253,7 +254,7 @@ defmodule Ilexir.Plugin do
 
           "#{url} opened."
         else
-          {:error, :not_implemented} -> "Source not found."
+          {:error, error} -> "Online source #{inspect error} for this object"
           :error -> "Problem with running OS command."
         end
 
