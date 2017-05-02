@@ -11,9 +11,10 @@ defmodule Ilexir.Code.Server do
     GenServer.start_link(__MODULE__, args, opts ++ [name: __MODULE__])
   end
 
-  def init(_args) do
+  def init(args \\ []) do
     :ets.new(@cache_name, [:named_table])
-    {:ok, %{modules: %{}}}
+    elixir_source_path = Keyword.get(args, :elixir_source_path)
+    {:ok, %{modules: %{}, elixir_source_path: elixir_source_path}}
   end
 
   def get_modules do
@@ -66,13 +67,13 @@ defmodule Ilexir.Code.Server do
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:get_source, module_name}, _from, %{modules: modules} = state) when is_atom(module_name) do
+  def handle_call({:get_source, module_name}, _from, %{modules: modules, elixir_source_path: elixir_source_path} = state) when is_atom(module_name) do
     result = case Map.get(modules, module_name) do
       {mod, code, file_path} ->
         {file_path, Code.find_source_line({:module, mod}, code)}
       _ ->
         with code <- Code.get_object_code(module_name),
-             path <- Code.get_source_path(module_name),
+             path when not is_nil(path) <- Code.get_source_path(module_name, elixir_source_path: elixir_source_path),
              line <- Code.find_source_line({:module, module_name}, code) do
 
           {path, line}
@@ -82,13 +83,13 @@ defmodule Ilexir.Code.Server do
     {:reply, result, state}
   end
 
-  def handle_call({:get_source, {module_name, func}}, _from, %{modules: modules} = state) do
+  def handle_call({:get_source, {module_name, func}}, _from, %{modules: modules, elixir_source_path: elixir_source_path} = state) do
     result = case Map.get(modules, module_name) do
       {_mod, code, file_path} ->
         {file_path, Code.find_source_line({:function, func}, code)}
       _ ->
         with code <- Code.get_object_code(module_name),
-             path <- Code.get_source_path(module_name),
+             path when not is_nil(path) <- Code.get_source_path(module_name, elixir_source_path: elixir_source_path),
              line <- Code.find_source_line({:function, func}, code) do
 
           {path, line}

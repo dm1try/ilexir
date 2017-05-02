@@ -43,10 +43,19 @@ defmodule Ilexir.Code do
   end
 
   @doc "Returns the source path"
-  def get_source_path(module) when is_atom(module) do
+  def get_source_path(module, args \\ []) when is_atom(module) do
     with compile_info when is_list(compile_info) <- Info.compile_info(module),
          source when is_list(source) <- Keyword.get(compile_info, :source) do
-      to_string(source)
+
+      source = String.Chars.to_string(source)
+
+      if File.exists?(source) do
+        source
+      else
+        if elixir_base_path = Keyword.get(args, :elixir_source_path) do
+          String.replace(source, ~r/^.*?elixir/, elixir_base_path)
+        end
+      end
     end
   end
 

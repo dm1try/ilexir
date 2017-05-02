@@ -26,11 +26,13 @@ defmodule Ilexir.CodeSpec do
   end
 
   context "sources" do
-    context "elixir module has a compilation info", async: false do
+    context "elixir module has a compilation info and a source file exists", async: false do
       before do
         allow(Code.Info).to accept :compile_info, fn(ModWithCompileInfo)->
           [options: [:debug_info], version: '7.0', source: '/path/to/kernel.ex']
         end
+
+        allow(File).to accept :exists?, fn(_)-> true end
       end
 
       it "returns path to the source" do
@@ -45,6 +47,22 @@ defmodule Ilexir.CodeSpec do
 
       it "returns nil" do
         expect(Code.get_source_path(ModWithoutCompileInfo)).to eq(nil)
+      end
+    end
+
+    context "elixir module with compilation info from different machine and elixir base src path is provided", async: false do
+      let :elixir_source_path, do: "/Users/dmitry/projects/elixir"
+
+      before do
+        allow(Code.Info).to accept :compile_info, fn(ModWithCompileInfo)->
+          [options: [:debug_info], version: '7.0', source: '/Users/jose/OSS/elixir/lib/elixir/lib/atom.ex']
+        end
+
+        allow(File).to accept :exists?, fn(_)-> false end
+      end
+
+      it "returns the valid path based on provided Elixir source path" do
+        expect(Code.get_source_path(ModWithCompileInfo, elixir_source_path: elixir_source_path())).to eq("/Users/dmitry/projects/elixir/lib/elixir/lib/atom.ex")
       end
     end
 

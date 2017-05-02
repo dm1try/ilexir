@@ -71,13 +71,13 @@ defmodule Ilexir.Code.ServerSpec do
 
       expect(CodeServer.get_source(IamHere)).to eq({env.file, env.line})
 
-      {path, line} = CodeServer.get_source(Enum)
+      {path, line} = CodeServer.get_source(Ilexir)
       expect(path).to be_bitstring()
       expect(line).to be_number()
     end
 
     it "finds functions" do
-      {path, line} = CodeServer.get_source({Enum, :all?})
+      {path, line} = CodeServer.get_source({Ilexir, :start})
       expect(path).to be_bitstring()
       expect(line).to be_number()
     end
