@@ -12,7 +12,17 @@ defmodule Ilexir.Plugin do
   alias Ilexir.Linter
   alias Ilexir.Autocomplete.OmniFunc, as: Autocomplete
 
+  @config Application.get_env(:ilexir, :user_config) || Ilexir.UserConfig.NVim
+
   def init(_args) do
+    with 1 <- @config.get("autostart_app"),
+        {:ok, current_dir} <- nvim_call_function("getcwd", []),
+        true <- File.exists?(Path.join(current_dir, "mix.exs")) do
+
+      path = Path.expand(".", current_dir)
+      AppManager.put_autostart_path(path, [callback: &handle_app_callback/1])
+    end
+
     {:ok, %{timer_ref: nil, current_app_id: nil}}
   end
 
